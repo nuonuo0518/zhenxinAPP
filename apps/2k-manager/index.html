@@ -119,7 +119,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .bdg-h{background:rgba(239,68,68,.18);color:#fca5a5}.bdg-g{background:rgba(245,158,11,.18);color:#fbbf24}.bdg-s{background:rgba(156,163,175,.18);color:#d1d5db}
 .empty{text-align:center;padding:36px;color:var(--t3)}.empty .eic{font-size:42px;margin-bottom:10px}.empty p{font-size:13px}
 
-@media(max-width:768px){.lb{grid-template-columns:1fr}.pg{grid-template-columns:1fr}.gg{grid-template-columns:1fr}.tg2{grid-template-columns:1fr}.flt{flex-direction:column}.sb{max-width:100%}}
+/* Editor */
+.ed-top{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.ed-btn{padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid var(--bd);transition:.2s}
+.ed-btn.pri{background:rgba(245,158,11,.15);border-color:var(--acc);color:var(--acc)}
+.ed-btn.pri:hover{background:rgba(245,158,11,.25)}
+.ed-btn.dan{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}
+.ed-btn.sec{background:var(--bg2);color:var(--t2)}
+.ed-btn.sec:hover{border-color:var(--acc2)}
+.ed-btn.ok{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#6ee7b7}
+.ed-form{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:14px}
+.ed-form h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--acc)}
+.ed-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.ed-field{display:flex;flex-direction:column;gap:3px}
+.ed-field label{font-size:10px;color:var(--t3);text-transform:uppercase}
+.ed-field input,.ed-field select{padding:6px 8px;background:var(--bg0);border:1px solid var(--bd);border-radius:5px;color:var(--t1);font-size:12px;outline:none}
+.ed-field input:focus,.ed-field select:focus{border-color:var(--acc)}
+.ed-field input[type=number]{width:100%}
+.ed-field textarea{padding:6px 8px;background:var(--bg0);border:1px solid var(--bd);border-radius:5px;color:var(--t1);font-size:12px;outline:none;resize:vertical;min-height:50px}
+.ed-list{display:flex;flex-direction:column;gap:6px}
+.ed-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer;transition:.2s}
+.ed-item:hover{border-color:var(--acc2);background:var(--bg3)}
+.ed-item .ei-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-item .ei-ver{color:var(--t3);font-size:11px;margin-left:4px}
+.ed-item .ei-btns{display:flex;gap:4px;flex-shrink:0}
+.ed-item .ei-btn{width:24px;height:24px;border-radius:5px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:.2s}
+.ed-item .ei-edit{background:rgba(59,130,246,.15);color:#93c5fd}
+.ed-item .ei-del{background:rgba(239,68,68,.12);color:#fca5a5}
+.ed-item .ei-edit:hover{background:rgba(59,130,246,.25)}
+.ed-item .ei-del:hover{background:rgba(239,68,68,.22)}
+.toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:12px;z-index:300;animation:toastIn .3s ease;pointer-events:none}
+.toast.ok{background:rgba(16,185,129,.9);color:#fff}
+.toast.er{background:rgba(239,68,68,.9);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ed-stats-info{font-size:11px;color:var(--t3);margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap}
+.ed-stats-info span{display:flex;align-items:center;gap:4px}
+
+@media(max-width:768px){.lb{grid-template-columns:1fr}.pg{grid-template-columns:1fr}.gg{grid-template-columns:1fr}.tg2{grid-template-columns:1fr}.flt{flex-direction:column}.sb{max-width:100%}.ed-row{grid-template-columns:repeat(2,1fr)}}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 </style>
 </head>
@@ -135,6 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
   <button class="tab" data-t="p2">⚙️ 阵容搭配</button>
   <button class="tab" data-t="p3">📋 天梯榜</button>
   <button class="tab" data-t="p4">📖 战术攻略</button>
+  <button class="tab" data-t="p5">✏️ 数据编辑</button>
 </nav>
 
 <div class="main">
@@ -169,6 +206,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 
   <!-- P4: Guide -->
   <div id="p4" class="pane"><div class="gg" id="gGrid"></div></div>
+
+  <!-- P5: Editor -->
+  <div id="p5" class="pane">
+    <div class="ed-stats-info" id="edStats"></div>
+    <div class="ed-top">
+      <button class="ed-btn pri" onclick="edNew()">➕ 新增球员</button>
+      <button class="ed-btn ok" onclick="edExport()">📥 导出JSON</button>
+      <button class="ed-btn sec" onclick="edImport()">📤 导入JSON</button>
+      <button class="ed-btn dan" onclick="edReset()">🔄 恢复默认</button>
+      <input type="file" id="edFileIn" accept=".json" style="display:none" onchange="edFileLoad(event)">
+      <div class="sb" style="margin-left:auto"><input id="edSearch" placeholder="搜索球员..." oninput="edRenderList()"></div>
+    </div>
+    <div id="edForm" style="display:none"></div>
+    <div class="ed-list" id="edList"></div>
+  </div>
 </div>
 
 <div class="mo" id="modal"><div class="md" id="mdC"></div></div>
@@ -204,6 +256,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.getElementById(b.dataset.t).classList.add('on');
   if(b.dataset.t==='p3')renderTier();
   if(b.dataset.t==='p4')renderGuide();
+  if(b.dataset.t==='p5')edRenderList();
 });
 
 // ===== Helpers =====
@@ -501,6 +554,215 @@ function renderGuide(){
       <li>不要忽略<span class="hl">体力门槛</span>，体力不足会导致轮换崩盘</li>
     </ul>
   </div>`;
+}
+
+// ===== P5: Editor =====
+const LS_KEY = '2kol2_custom_players';
+
+// Load custom data from localStorage on init
+(function initCustomData(){
+  const saved = localStorage.getItem(LS_KEY);
+  if(saved){
+    try{
+      const custom = JSON.parse(saved);
+      if(Array.isArray(custom) && custom.length > 0){
+        // Replace PLAYERS array with custom data
+        PLAYERS.length = 0;
+        custom.forEach(p => PLAYERS.push(p));
+        renderP(); // re-render player grid
+      }
+    }catch(e){ console.warn('Failed to load custom player data:', e); }
+  }
+})();
+
+function saveToLS(){
+  localStorage.setItem(LS_KEY, JSON.stringify(PLAYERS));
+}
+
+function toast(msg, type='ok'){
+  const d = document.createElement('div');
+  d.className = 'toast ' + type;
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 2000);
+}
+
+function edRenderList(){
+  const q = (document.getElementById('edSearch')?.value || '').toLowerCase();
+  const filtered = PLAYERS.filter(p => !q || p.name.toLowerCase().includes(q) || p.version.toLowerCase().includes(q));
+
+  document.getElementById('edStats').innerHTML = `
+    <span>📊 总球员: <b>${PLAYERS.length}</b></span>
+    <span>🎯 发牌: <b>${PLAYERS.filter(p=>p.roles.includes('发牌员')).length}</b></span>
+    <span>🏀 射手: <b>${PLAYERS.filter(p=>p.roles.includes('射手')).length}</b></span>
+    <span>🛡️ 副攻: <b>${PLAYERS.filter(p=>p.roles.includes('副攻手')).length}</b></span>
+    <span>🏋️ 内线: <b>${PLAYERS.filter(p=>p.roles.includes('内线')).length}</b></span>
+    <span>💾 ${localStorage.getItem(LS_KEY) ? '已有本地修改' : '使用默认数据'}</span>`;
+
+  document.getElementById('edList').innerHTML = filtered.map(p => `
+    <div class="ed-item">
+      <span class="tier" style="background:${TIER_COLORS[p.tier]};flex-shrink:0">${p.tier}</span>
+      <span class="ei-name">${p.name}<span class="ei-ver">${p.version}</span></span>
+      <span style="font-size:10px;color:var(--t3)">${p.positions.join('/')} | ${p.roles.join('/')}</span>
+      <span class="ei-btns">
+        <button class="ei-btn ei-edit" onclick="edEdit('${p.id}')" title="编辑">✎</button>
+        <button class="ei-btn ei-del" onclick="edDel('${p.id}')" title="删除">✕</button>
+      </span>
+    </div>`).join('');
+}
+
+function edFormHTML(p){
+  const isNew = !p;
+  p = p || {id:'',name:'',version:'',positions:['PG'],roles:['发牌员'],tier:'B',
+    stats:{three:70,mid:70,drive:70,def:70,reb:50,stam:118,spd:78,model:196},
+    tend:{touch:50,pass:50,shot:50,disc:70,cut:25,iso:20,steal:50,contest:50,scrn3:50,chgDir:20},
+    tactics:['通用'],badges:[],tags:[],note:''};
+
+  return `<div class="ed-form">
+    <h3>${isNew ? '➕ 新增球员' : '✏️ 编辑: ' + p.name}</h3>
+    <div class="ed-row">
+      <div class="ed-field"><label>ID (英文唯一)</label><input id="ef_id" value="${p.id}" ${isNew?'':'readonly style="opacity:.5"'}></div>
+      <div class="ed-field"><label>名称</label><input id="ef_name" value="${p.name}"></div>
+      <div class="ed-field"><label>版本</label><input id="ef_version" value="${p.version}" placeholder="陈列室/现役/历史/X11..."></div>
+      <div class="ed-field"><label>位置 (逗号分隔)</label><input id="ef_pos" value="${p.positions.join(',')}"></div>
+      <div class="ed-field"><label>定位 (逗号分隔)</label><input id="ef_roles" value="${p.roles.join(',')}" placeholder="发牌员/射手/副攻手/内线/攻坚手"></div>
+      <div class="ed-field"><label>强度档位</label><select id="ef_tier"><option ${p.tier==='S+'?'selected':''}>S+</option><option ${p.tier==='S'?'selected':''}>S</option><option ${p.tier==='A'?'selected':''}>A</option><option ${p.tier==='B'?'selected':''}>B</option><option ${p.tier==='C'?'selected':''}>C</option></select></div>
+    </div>
+    <h3 style="font-size:12px;margin:10px 0 6px">📊 属性</h3>
+    <div class="ed-row">
+      ${[{k:'three',l:'三分'},{k:'mid',l:'中投'},{k:'drive',l:'突破'},{k:'def',l:'防守'},{k:'reb',l:'篮板'},{k:'stam',l:'体力'},{k:'spd',l:'速度'},{k:'model',l:'模型(cm)'}].map(s=>
+        `<div class="ed-field"><label>${s.l}</label><input type="number" id="ef_s_${s.k}" value="${p.stats[s.k]}" min="0" max="250"></div>`).join('')}
+    </div>
+    <h3 style="font-size:12px;margin:10px 0 6px">🎯 倾向</h3>
+    <div class="ed-row">
+      ${[{k:'touch',l:'触球'},{k:'pass',l:'传球'},{k:'shot',l:'出手'},{k:'disc',l:'纪律'},{k:'cut',l:'切入'},{k:'iso',l:'单挑'},{k:'steal',l:'持球抢断'},{k:'contest',l:'干扰投篮'},{k:'scrn3',l:'挡拆后三分'},{k:'chgDir',l:'变向切入'}].map(t=>
+        `<div class="ed-field"><label>${t.l}</label><input type="number" id="ef_t_${t.k}" value="${p.tend[t.k]}" min="0" max="100"></div>`).join('')}
+    </div>
+    <h3 style="font-size:12px;margin:10px 0 6px">🎖️ 其他</h3>
+    <div class="ed-row">
+      <div class="ed-field"><label>战术 (逗号)</label><input id="ef_tactics" value="${p.tactics.join(',')}" placeholder="老鹰,通用,挡拆,三分..."></div>
+      <div class="ed-field"><label>徽章 (逗号)</label><input id="ef_badges" value="${p.badges.join(',')}" placeholder="HOF三分,金色防守..."></div>
+      <div class="ed-field"><label>标签 (逗号)</label><input id="ef_tags" value="${p.tags.join(',')}" placeholder="标签1,标签2..."></div>
+    </div>
+    <div class="ed-field" style="margin-top:8px"><label>简评</label><textarea id="ef_note">${p.note}</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="ed-btn ok" onclick="edSave('${isNew?'':p.id}')">💾 保存</button>
+      <button class="ed-btn sec" onclick="edCancel()">取消</button>
+    </div>
+  </div>`;
+}
+
+function edNew(){
+  document.getElementById('edForm').innerHTML = edFormHTML(null);
+  document.getElementById('edForm').style.display = 'block';
+  document.getElementById('ef_id').focus();
+}
+
+function edEdit(id){
+  const p = PLAYERS.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('edForm').innerHTML = edFormHTML(p);
+  document.getElementById('edForm').style.display = 'block';
+}
+
+function edCancel(){
+  document.getElementById('edForm').style.display = 'none';
+  document.getElementById('edForm').innerHTML = '';
+}
+
+function edSave(existingId){
+  const id = document.getElementById('ef_id').value.trim();
+  const name = document.getElementById('ef_name').value.trim();
+  if(!id || !name){ toast('ID和名称不能为空','er'); return; }
+
+  const player = {
+    id: id,
+    name: name,
+    version: document.getElementById('ef_version').value.trim(),
+    positions: document.getElementById('ef_pos').value.split(',').map(s=>s.trim()).filter(Boolean),
+    roles: document.getElementById('ef_roles').value.split(',').map(s=>s.trim()).filter(Boolean),
+    tier: document.getElementById('ef_tier').value,
+    stats: {},
+    tend: {},
+    tactics: document.getElementById('ef_tactics').value.split(',').map(s=>s.trim()).filter(Boolean),
+    badges: document.getElementById('ef_badges').value.split(',').map(s=>s.trim()).filter(Boolean),
+    tags: document.getElementById('ef_tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    note: document.getElementById('ef_note').value.trim()
+  };
+
+  ['three','mid','drive','def','reb','stam','spd','model'].forEach(k=>{
+    player.stats[k] = parseInt(document.getElementById('ef_s_'+k).value)||0;
+  });
+  ['touch','pass','shot','disc','cut','iso','steal','contest','scrn3','chgDir'].forEach(k=>{
+    player.tend[k] = parseInt(document.getElementById('ef_t_'+k).value)||0;
+  });
+
+  if(existingId){
+    const idx = PLAYERS.findIndex(p=>p.id===existingId);
+    if(idx>=0) PLAYERS[idx] = player;
+  } else {
+    if(PLAYERS.some(p=>p.id===id)){ toast('ID已存在，请换一个','er'); return; }
+    PLAYERS.push(player);
+  }
+
+  saveToLS();
+  edCancel();
+  edRenderList();
+  renderP();
+  toast(existingId ? '✅ 已更新: ' + name : '✅ 已添加: ' + name);
+}
+
+function edDel(id){
+  const p = PLAYERS.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm('确定删除 ' + p.name + ' (' + p.version + ')？')) return;
+  const idx = PLAYERS.findIndex(x=>x.id===id);
+  if(idx>=0) PLAYERS.splice(idx,1);
+  saveToLS();
+  edRenderList();
+  renderP();
+  toast('🗑️ 已删除: ' + p.name);
+}
+
+function edExport(){
+  const blob = new Blob([JSON.stringify(PLAYERS,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '2kol2_players_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('📥 已导出 ' + PLAYERS.length + ' 名球员');
+}
+
+function edImport(){
+  document.getElementById('edFileIn').click();
+}
+
+function edFileLoad(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!Array.isArray(data) || data.length===0){ toast('JSON格式不对','er'); return; }
+      if(!confirm('将导入 ' + data.length + ' 名球员，覆盖当前数据？')) return;
+      PLAYERS.length = 0;
+      data.forEach(p=>PLAYERS.push(p));
+      saveToLS();
+      edRenderList();
+      renderP();
+      toast('📤 已导入 ' + data.length + ' 名球员');
+    }catch(err){ toast('JSON解析失败: '+err.message,'er'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function edReset(){
+  if(!confirm('确定恢复默认数据？你的所有修改将丢失！')) return;
+  localStorage.removeItem(LS_KEY);
+  toast('🔄 已恢复默认，刷新页面生效');
+  setTimeout(()=>location.reload(), 800);
 }
 </script>
 </body>
