@@ -1,5 +1,5 @@
 // Service Worker - 八字命理 PWA
-const CACHE_NAME = 'bazi-v1';
+const CACHE_NAME = 'bazi-v2';
 const ASSETS = [
   './',
   './index.html',

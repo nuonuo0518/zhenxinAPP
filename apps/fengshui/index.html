@@ -21,16 +21,16 @@
   --fire:#d9534f;--earth:#d4a017;--metal:#f0f0f0;
   --border:rgba(230,180,34,0.15);
 }
-html{font-size:14px}
+html{font-size:14px;overflow-x:hidden}
 body{
   background:var(--bg);color:var(--text);
   font-family:'PingFang SC','Microsoft YaHei','Noto Serif SC',serif;
-  min-height:100vh;
+  min-height:100vh;overflow-x:hidden;
 }
 a{color:var(--accent);text-decoration:none}
 
 /* ===== 布局 ===== */
-.app{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.app{max-width:1100px;margin:0 auto;padding:20px 16px 60px;width:100%;overflow-x:hidden}
 header{text-align:center;padding:30px 0 20px;position:relative}
 header h1{
   font-size:2rem;letter-spacing:6px;color:var(--accent);
@@ -45,7 +45,7 @@ header p{color:var(--dim);margin-top:6px;font-size:.9rem}
 }
 .input-section h2{color:var(--accent);font-size:1.1rem;margin-bottom:16px;letter-spacing:2px}
 .form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
 .form-group label{color:var(--dim);font-size:.8rem}
 .form-group select,.form-group input{
   background:#12122a;border:1px solid var(--border);color:var(--text);
@@ -127,7 +127,7 @@ header p{color:var(--dim);margin-top:6px;font-size:.9rem}
 }
 
 /* 十神表格 */
-.shishen-table{width:100%;border-collapse:collapse;margin:8px 0}
+.shishen-table{width:100%;border-collapse:collapse;margin:8px 0;display:block;overflow-x:auto}
 .shishen-table th,.shishen-table td{
   padding:6px 10px;text-align:center;border:1px solid var(--border);font-size:.85rem;
 }
@@ -295,27 +295,37 @@ header p{color:var(--dim);margin-top:6px;font-size:.9rem}
 /* 响应式 */
 @media(max-width:600px){
   html{font-size:13px}
+  *{max-width:100%}
   .app{padding:12px 10px 80px}
   header{padding:20px 0 14px}
   header h1{font-size:1.6rem;letter-spacing:4px}
-  .input-section{padding:16px 14px}
+  .input-section{padding:16px 12px}
+  .form-row{flex-direction:column;gap:10px}
+  .form-group{min-width:auto;width:100%}
+  .form-group select,.form-group input{width:100%;font-size:1rem;padding:10px 12px}
+  .gender-row{justify-content:flex-start}
+  .btn-calc{padding:12px 24px;width:100%;font-size:1rem}
   .pillars{grid-template-columns:repeat(2,1fr);gap:8px}
   .pillar{padding:12px 6px}
   .pillar-gan,.pillar-zhi{font-size:1.3rem}
-  .form-row{flex-direction:column}
-  .form-group{min-width:auto}
-  .analysis-card{padding:14px 12px;margin:10px 0}
-  .dayun-flow{gap:6px}
+  .analysis-card{padding:14px 12px;margin:10px 0;overflow-x:auto}
+  .dayun-flow{gap:6px;padding:8px 0;-webkit-overflow-scrolling:touch}
   .dayun-item{min-width:62px;padding:8px 6px}
   .chat-msg{max-width:92%}
-  .export-bar{flex-direction:column}
+  .export-bar{flex-direction:column;gap:8px}
+  .btn-export{width:100%;justify-content:center;padding:12px 16px}
   .chat-input-area{padding:10px 12px}
   .chat-messages{padding:12px 14px;max-height:400px}
-  .quick-questions{padding:6px 14px 10px;gap:6px}
-  .quick-q{font-size:.72rem;padding:4px 10px}
-  .btn-calc{padding:10px 24px;width:100%}
-  .shishen-table th,.shishen-table td{padding:4px 6px;font-size:.78rem}
+  .quick-questions{padding:6px 12px 10px;gap:6px}
+  .quick-q{font-size:.75rem;padding:5px 10px}
+  .shishen-table th,.shishen-table td{padding:4px 6px;font-size:.78rem;white-space:nowrap}
   .wuxing-chart{height:100px}
+  .summary-text{font-size:.85rem;word-break:break-word}
+  .tag{font-size:.7rem;margin:2px 2px}
+  .chat-section{margin:14px 0}
+  .chat-header{padding:12px 14px;flex-direction:column;gap:4px;align-items:flex-start}
+  .chat-input{font-size:.9rem;padding:10px 12px}
+  .btn-send{padding:10px 16px}
 }
 
 /* 安全区适配（iPhone 刘海/底栏） */
@@ -374,7 +384,7 @@ header p{color:var(--dim);margin-top:6px;font-size:.9rem}
           <label for="female">女</label>
         </div>
       </div>
-      <div class="form-group" style="flex:0">
+      <div class="form-group" style="flex:none">
         <label>&nbsp;</label>
         <button class="btn-calc" onclick="calculate()">排 盘</button>
       </div>
