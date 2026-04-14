@@ -160,6 +160,7 @@ textarea{resize:vertical;min-height:50px;width:100%}
   <div class="fr"><label>胜利条件</label><select id="winMode"><option value="massacre">屠城 — 狼人数 ≥ 好人总数</option><option value="slaughter">屠边 — 所有神职死亡 或 所有平民死亡</option></select></div>
   <div class="fr"><label>输出详细度</label><select id="vb"><option value="full">Full — 完整思维链</option><option value="summary">Summary — 精简</option></select></div>
   <div class="fr"><label>最大轮数</label><input type="number" id="maxR" value="10" min="3" max="20" style="width:70px"></div>
+  <div class="fr"><label>警长系统</label><label style="min-width:auto"><input type="checkbox" id="hasSheriff" checked> 启用警长竞选</label><span id="sheriffHint" style="font-size:.75rem;color:var(--dim)">（8人及以上可用）</span></div>
   <div class="fr"><label>特殊规则</label><label style="min-width:auto"><input type="checkbox" id="noFP"> 首夜禁毒</label><label style="min-width:auto"><input type="checkbox" id="noFV"> 首轮禁票</label></div>
 </div>
 <div class="cbar"><button class="btn bo" onclick="goStep(2)">← 返回</button><button class="btn bp" onclick="goStep(4)">确认配置 →</button></div>

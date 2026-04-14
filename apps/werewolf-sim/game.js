@@ -143,7 +143,7 @@ const WIN_MODES = {
 
 // ---- State ----
 let G = {
-  id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre" },
+  id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre", hasSheriff: true },
   players: [], roles: {}, assign: {}, round: 0, phase: "config",
   events: [], chat: [], thoughts: {}, trust: {}, winner: null,
   aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null,
@@ -211,6 +211,19 @@ function updateHint() {
   if (p.guard) parts.push("守卫");
   if (p.villager) parts.push(p.villager + "平民");
   el("pcHint").innerHTML = "推荐：<strong>" + parts.join(" + ") + "</strong>";
+  // Sheriff system: auto-disable below 8 players
+  var sheriffCb = el("hasSheriff");
+  var sheriffHint = el("sheriffHint");
+  if (sheriffCb) {
+    if (c < 8) {
+      sheriffCb.checked = false;
+      sheriffCb.disabled = true;
+      if (sheriffHint) sheriffHint.textContent = "（需8人及以上）";
+    } else {
+      sheriffCb.disabled = false;
+      if (sheriffHint) sheriffHint.textContent = "（8人及以上可用）";
+    }
+  }
 }
 updateHint();
 
@@ -465,6 +478,9 @@ function buildSummary() {
   G.cfg.noFP = el("noFP").checked;
   G.cfg.noFV = el("noFV").checked;
   G.cfg.winMode = el("winMode").value;
+  // Sheriff: only enabled if checkbox checked AND player count >= 8
+  var sheriffCb = el("hasSheriff");
+  G.cfg.hasSheriff = sheriffCb && sheriffCb.checked && G.cfg.pc >= 8;
   var rs = Object.entries(G.roles).filter(function (e) { return e[1] > 0; })
     .map(function (e) { return ROLES[e[0]].emoji + ROLES[e[0]].name + "\u00D7" + e[1]; }).join(" + ");
   var sp = [];
@@ -472,12 +488,14 @@ function buildSummary() {
   if (G.cfg.noFV) sp.push("\u9996\u8F6E\u7981\u7968");
   var mn = { random: "\u{1F3B2} Random", stress: "\u{1F9E0} Stress", custom: "\u270F\uFE0F Custom" };
   var wm = WIN_MODES[G.cfg.winMode];
+  var sheriffLabel = G.cfg.hasSheriff ? "\u2705 \u542F\u7528\uFF081.5\u7968 + \u5F52\u7968\u6743\uFF09" : "\u274C \u5173\u95ED" + (G.cfg.pc < 8 ? "\uFF08\u4EBA\u6570\u4E0D\u8DB3\uFF09" : "");
   el("sumTbl").innerHTML =
     "<tr><td>\u4EBA\u6570</td><td><strong>" + G.cfg.pc + "\u4EBA</strong></td></tr>" +
     "<tr><td>\u540D\u5355</td><td>" + G.players.map(function (p) { return escHtml(p.name); }).join("\u3001") + "</td></tr>" +
     "<tr><td>\u89D2\u8272</td><td>" + rs + "</td></tr>" +
     "<tr><td>\u6A21\u5F0F</td><td>" + mn[G.cfg.mode] + "</td></tr>" +
     "<tr><td>\u80DC\u5229\u6761\u4EF6</td><td>" + wm.name + " \u2014 " + wm.desc + "</td></tr>" +
+    "<tr><td>\u8B66\u957F\u7CFB\u7EDF</td><td>" + sheriffLabel + "</td></tr>" +
     "<tr><td>\u8BE6\u7EC6\u5EA6</td><td>" + (G.cfg.vb === "full" ? "Full" : "Summary") + "</td></tr>" +
     "<tr><td>\u8F6E\u6570\u4E0A\u9650</td><td>" + G.cfg.maxR + "</td></tr>" +
     "<tr><td>\u7279\u6B8A\u89C4\u5219</td><td>" + (sp.length ? sp.join("\u3001") : "\u65E0") + "</td></tr>";
@@ -511,7 +529,8 @@ function startGame() {
   });
   G.round = 1; G.phase = "night"; G.events = []; G.chat = [];
   G.aq = []; G.ai = 0; G.winner = null; G.curEvent = null; G._wolfTarget = null;
-  G.sheriff = null; G.sheriffElected = false;
+  G.sheriff = null;
+  G.sheriffElected = !G.cfg.hasSheriff; // If sheriff disabled, mark as already "elected" (skipped)
   G._guardTarget = null; G._lastGuardTarget = null;
   switchScreen("game");
   setPBadge("b-night", "\u{1F319} \u591C\u665A");
@@ -594,8 +613,8 @@ function buildActions() {
   q.push({ type: "phase", ph: "day", txt: "\u2600\uFE0F \u7B2C" + r + "\u8F6E\u00B7\u5929\u4EAE\u4E86" });
   q.push({ type: "death_ann", r: r });
 
-  // Sheriff election on round 1 (before speeches)
-  if (r === 1 && !G.sheriffElected) {
+  // Sheriff election on round 1 (before speeches) — only if enabled
+  if (r === 1 && !G.sheriffElected && G.cfg.hasSheriff) {
     q.push({ type: "sheriff_election", r: r });
   }
 
@@ -1520,7 +1539,7 @@ function exportJSON() {
 
 function resetGame() {
   G = {
-    id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre" },
+    id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre", hasSheriff: true },
     players: [], roles: {}, assign: {}, round: 0, phase: "config",
     events: [], chat: [], thoughts: {}, trust: {}, winner: null,
     aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null,
