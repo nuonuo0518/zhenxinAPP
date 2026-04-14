@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>🐺 狼人杀模拟系统</title>
+<style>
+.back-home{position:fixed;bottom:20px;left:20px;z-index:150;background:#121830;border:1px solid #2a3050;border-radius:10px;padding:8px 16px;color:#7f8c8d;text-decoration:none;font-size:.8rem;transition:all .2s;display:flex;align-items:center;gap:6px}
+.back-home:hover{border-color:#6c5ce7;color:#ecf0f1;transform:translateY(-2px)}
+</style>
+</head>
+<body>
+<script>
+// Load the main app by fetching app.html and injecting its content
+fetch('app.html')
+  .then(r => r.text())
+  .then(html => {
+    // Extract body content (between <body> and </body>)
+    var bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    var styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+    
+    // Inject styles
+    if (styleMatch) {
+      styleMatch.forEach(s => {
+        var styleEl = document.createElement('style');
+        styleEl.textContent = s.replace(/<\/?style[^>]*>/gi, '');
+        document.head.appendChild(styleEl);
+      });
+    }
+    
+    // Inject body
+    if (bodyMatch) {
+      document.body.innerHTML = bodyMatch[1];
+    }
+    
+    // Add back-home link
+    var backLink = document.createElement('a');
+    backLink.className = 'back-home';
+    backLink.href = '../../index.html';
+    backLink.innerHTML = '🏠 返回 App Hub';
+    document.body.appendChild(backLink);
+    
+    // Load game.js
+    var script = document.createElement('script');
+    script.src = 'game.js';
+    document.body.appendChild(script);
+  })
+  .catch(err => {
+    document.body.innerHTML = '<div style="color:#e74c3c;padding:40px;text-align:center"><h2>加载失败</h2><p>' + err.message + '</p><p><a href="app.html" style="color:#6c5ce7">直接打开 app.html</a></p></div>';
+  });
+</script>
+</body>
+</html>

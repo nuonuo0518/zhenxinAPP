@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐺 狼人杀模拟系统</title>
+<style>
+:root{--bg:#0a0e1a;--card:#121830;--border:#2a3050;--accent:#6c5ce7;--accent2:#a29bfe;--red:#e74c3c;--blue:#3498db;--green:#2ecc71;--orange:#e67e22;--purple:#9b59b6;--gray:#95a5a6;--txt:#ecf0f1;--dim:#7f8c8d;--muted:#566573}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.hdr{background:linear-gradient(135deg,#1a1040,#0d1117);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.hdr h1{font-size:1.4rem;background:linear-gradient(135deg,var(--red),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.badge{padding:4px 14px;border-radius:20px;font-weight:600;font-size:.78rem}
+.b-cfg{background:var(--accent);color:#fff}.b-night{background:#0d1117;color:#8b9dc3;border:1px solid #2a3a5c}.b-day{background:#2d3748;color:#fbd38d}.b-vote{background:var(--red);color:#fff}.b-result{background:var(--green);color:#fff}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+.screen{display:none}.screen.active{display:block;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px}
+.card:hover{border-color:var(--accent)}.card h2{font-size:1.1rem;margin-bottom:14px}
+input[type=text],input[type=number],textarea,select{background:#0d1220;border:1px solid var(--border);color:var(--txt);padding:7px 12px;border-radius:8px;font-size:.88rem;outline:none;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:50px;width:100%}
+.btn{padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-size:.88rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{transform:translateY(-1px)}.bp{background:var(--accent);color:#fff}.bo{background:0 0;border:1px solid var(--border);color:var(--dim)}.bo:hover{border-color:var(--accent);color:var(--txt)}.bd{background:var(--red);color:#fff}
+.btn-lg{padding:14px 40px;font-size:1.05rem}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+.pcard{background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:14px;position:relative}
+.pcard:hover{border-color:var(--accent)}
+.pcard .pnum{width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700}
+.flbl{font-size:.72rem;color:var(--muted);margin-top:7px;display:block}
+.pcard input,.pcard textarea{width:100%;margin-top:4px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+.ritem{background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.ritem .re{font-size:1.8rem}.ritem .rn{font-weight:600;font-size:.88rem}
+.ritem .rc{margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px}
+.ritem .rc button{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--txt);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.ritem .rc button:hover{border-color:var(--accent);background:var(--accent)}
+.ritem .rc span{font-size:1.1rem;font-weight:700;min-width:20px}
+.msel{display:flex;gap:10px;flex-wrap:wrap}
+.mopt{flex:1;min-width:150px;background:#0d1220;border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s}
+.mopt:hover{border-color:var(--accent)}.mopt.sel{border-color:var(--accent);background:rgba(108,92,231,.1)}
+.mopt .mi{font-size:1.6rem}.mopt .mn{font-weight:700;font-size:.9rem}.mopt .md{font-size:.75rem;color:var(--dim);margin-top:3px}
+.cbar{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--border);margin-top:18px;flex-wrap:wrap;gap:10px}
+.stepper{display:flex;justify-content:center;gap:0;margin-bottom:20px}
+.sdot{width:30px;height:30px;border-radius:50%;background:#1a2240;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;transition:all .3s}
+.sdot.act{background:var(--accent);border-color:var(--accent)}.sdot.done{background:var(--green);border-color:var(--green)}
+.sline{width:36px;height:2px;background:var(--border);align-self:center}.sline.done{background:var(--green)}
+.csummary{background:linear-gradient(135deg,#1a1040,#0d1220);border:1px solid var(--accent);border-radius:12px;padding:22px}
+.csummary table{width:100%;border-collapse:collapse}.csummary td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05)}.csummary td:first-child{color:var(--dim);font-weight:500;width:110px}
+/* Game Board */
+.gboard{display:grid;grid-template-columns:240px 1fr 240px;gap:16px;min-height:65vh}
+@media(max-width:960px){.gboard{grid-template-columns:1fr}}
+.chat{background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.chdr{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.2)}
+.cbody{flex:1;overflow-y:auto;padding:12px;max-height:58vh}
+.cmsg{margin-bottom:12px;animation:fi .3s}
+.cmsg .ms{font-weight:700;font-size:.82rem;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.cmsg .mc{background:#0d1220;border-radius:7px;padding:9px 12px;font-size:.86rem;line-height:1.6;border-left:3px solid var(--border)}
+.cmsg.wolf .mc{border-left-color:var(--red)}.cmsg.good .mc{border-left-color:var(--blue)}
+.cmsg.sys .mc{background:rgba(108,92,231,.08);border-left-color:var(--accent);color:var(--accent2);font-style:italic}
+.cmsg.death .mc{background:rgba(231,76,60,.08);border-left-color:var(--red)}
+.ipanel{display:flex;flex-direction:column;gap:12px}
+.isec{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
+.isec h4{font-size:.82rem;color:var(--accent2);margin-bottom:8px}
+.rind{text-align:center;font-size:2.6rem;font-weight:800;color:var(--accent);line-height:1}
+.rlbl{font-size:.78rem;color:var(--dim);margin-top:3px;text-align:center}
+.alist,.dlist{list-style:none}.alist li,.dlist li{padding:3px 0;font-size:.8rem;display:flex;align-items:center;gap:5px}
+.dlist li{color:var(--muted);text-decoration:line-through}
+.vboard{display:grid;grid-template-columns:1fr;gap:6px}
+.vcell{background:#0d1220;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.78rem;display:flex;align-items:center;gap:6px}
+.vcell .vn{font-weight:600;min-width:50px}.vcell .va{color:var(--accent)}.vcell .vt{color:var(--red);font-weight:700}
+/* Trust */
+.trow{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:.75rem}
+.tname{min-width:55px;color:var(--dim)}.tbar{flex:1;height:5px;background:#1a2240;border-radius:3px;overflow:hidden}
+.tfill{height:100%;border-radius:3px;transition:width .5s}.tval{min-width:28px;text-align:right;color:var(--muted)}
+/* Result */
+.rbanner{text-align:center;padding:36px;border-radius:16px;margin-bottom:20px}
+.rbanner.wolf-win{background:linear-gradient(135deg,rgba(231,76,60,.15),rgba(192,57,43,.05));border:1px solid rgba(231,76,60,.3)}
+.rbanner.good-win{background:linear-gradient(135deg,rgba(52,152,219,.15),rgba(41,128,185,.05));border:1px solid rgba(52,152,219,.3)}
+.rbanner .wi{font-size:3.5rem}.rbanner .wt{font-size:1.6rem;font-weight:800;margin-top:10px}.rbanner .wr{color:var(--dim);margin-top:6px}
+.itable{width:100%;border-collapse:collapse;margin-top:10px}
+.itable th{text-align:left;padding:8px 12px;background:rgba(0,0,0,.2);font-size:.82rem;color:var(--dim);border-bottom:1px solid var(--border)}
+.itable td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.86rem}
+.ptabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.ptab{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:0 0;color:var(--dim);cursor:pointer;font-size:.8rem;font-weight:500;transition:all .2s}
+.ptab:hover{border-color:var(--accent);color:var(--txt)}.ptab.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tcontent{background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:18px;max-height:45vh;overflow-y:auto;line-height:1.7;font-size:.88rem}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px}
+.ecard{background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .2s}
+.ecard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.ecard .ei{font-size:1.8rem;margin-bottom:4px}.ecard .en{font-weight:600;font-size:.88rem}.ecard .ed{font-size:.72rem;color:var(--dim);margin-top:3px}
+/* Overlay */
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;animation:fi .4s}
+.ov .box{background:#0d1117;border:1px solid #2a3a5c;border-radius:16px;padding:28px 36px;text-align:center;max-width:500px;width:90%}
+.hidden{display:none!important}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.fr{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.fr label{min-width:90px;font-weight:500;color:var(--dim);font-size:.88rem}
+.tc{text-align:center}.mt{margin-top:14px}.mb{margin-bottom:14px}
+.spd{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--dim)}
+.spd input[type=range]{width:80px;accent-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>🐺 狼人杀模拟系统 v2.0</h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="gid" style="font-size:.8rem;color:var(--dim)"></span>
+    <span id="pbadge" class="badge b-cfg">⚙️ 配置中</span>
+  </div>
+</div>
+<div class="wrap">
+<!-- ========== CONFIG SCREEN ========== -->
+<div id="S_cfg" class="screen active">
+<div class="stepper" id="stepper"></div>
+
+<!-- Step 1 -->
+<div id="cs1" class="cstep">
+<div class="card">
+  <h2>👥 第一步：参与人数</h2>
+  <p style="color:var(--dim);font-size:.85rem;margin-bottom:12px">本局有多少名玩家参加？（6-12人）</p>
+  <div class="fr"><label>玩家人数</label>
+    <input type="range" id="pcRange" min="6" max="12" value="8" style="flex:1;accent-color:var(--accent)" oninput="el('pcVal').textContent=this.value;updateHint()">
+    <span id="pcVal" style="font-size:2rem;font-weight:800;color:var(--accent);min-width:36px;text-align:center">8</span><span style="color:var(--dim);font-size:.85rem">人</span>
+  </div>
+  <div id="pcHint" style="color:var(--dim);font-size:.85rem;margin-top:10px"></div>
+</div>
+<div class="cbar"><div></div><button class="btn bp" onclick="goStep(2)">下一步 →</button></div>
+</div>
+
+<!-- Step 2 -->
+<div id="cs2" class="cstep hidden">
+<div class="card">
+  <h2>🎭 第二步：玩家名单</h2>
+  <p style="color:var(--dim);font-size:.85rem;margin-bottom:10px">为每个玩家提供基本信息。</p>
+  <div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn bp" style="font-size:.8rem;padding:6px 12px" onclick="fillSquad()">🎭 导入Agent小队</button><button class="btn bo" style="font-size:.8rem;padding:6px 12px" onclick="fillDemo()">📋 填入示例</button><button class="btn bo" style="font-size:.8rem;padding:6px 12px" onclick="clearAll()">🗑️ 清空</button></div>
+  <div id="pGrid" class="pgrid"></div>
+</div>
+<div class="cbar"><button class="btn bo" onclick="goStep(1)">← 返回</button><button class="btn bp" onclick="goStep(3)">下一步 →</button></div>
+</div>
+
+<!-- Step 3 -->
+<div id="cs3" class="cstep hidden">
+<div class="card">
+  <h2>🎲 第三步：角色与模式</h2>
+  <div id="rGrid" class="rgrid"></div>
+  <div id="rcErr" style="color:var(--red);font-size:.85rem;margin-top:8px"></div>
+</div>
+<div class="card">
+  <h2>🧩 身份分配模式</h2>
+  <div class="msel" id="mSel">
+    <div class="mopt sel" data-m="random" onclick="selMode('random')"><div class="mi">🎲</div><div class="mn">Random</div><div class="md">完全随机</div></div>
+    <div class="mopt" data-m="stress" onclick="selMode('stress')"><div class="mi">🧠</div><div class="mn">Stress</div><div class="md">分析人格，最大冲突</div></div>
+    <div class="mopt" data-m="custom" onclick="selMode('custom')"><div class="mi">✏️</div><div class="mn">Custom</div><div class="md">手动指定身份</div></div>
+  </div>
+  <div id="custPanel" class="hidden mt"></div>
+</div>
+<div class="card">
+  <h2>⚙️ 其他设置</h2>
+  <div class="fr"><label>胜利条件</label><select id="winMode"><option value="massacre">屠城 — 狼人数 ≥ 好人总数</option><option value="slaughter">屠边 — 所有神职死亡 或 所有平民死亡</option></select></div>
+  <div class="fr"><label>输出详细度</label><select id="vb"><option value="full">Full — 完整思维链</option><option value="summary">Summary — 精简</option></select></div>
+  <div class="fr"><label>最大轮数</label><input type="number" id="maxR" value="10" min="3" max="20" style="width:70px"></div>
+  <div class="fr"><label>特殊规则</label><label style="min-width:auto"><input type="checkbox" id="noFP"> 首夜禁毒</label><label style="min-width:auto"><input type="checkbox" id="noFV"> 首轮禁票</label></div>
+</div>
+<div class="cbar"><button class="btn bo" onclick="goStep(2)">← 返回</button><button class="btn bp" onclick="goStep(4)">确认配置 →</button></div>
+</div>
+
+<!-- Step 4 -->
+<div id="cs4" class="cstep hidden">
+<div class="card csummary"><h2>📋 对局配置确认</h2><table id="sumTbl"></table></div>
+<div class="tc mt"><button class="btn bd btn-lg" onclick="startGame()">🐺 开始模拟！</button></div>
+<div class="cbar"><button class="btn bo" onclick="goStep(3)">← 修改</button><div></div></div>
+</div>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="S_game" class="screen">
+<div class="gboard">
+  <div class="ipanel">
+    <div class="isec tc"><div class="rind" id="rDisp">1</div><div class="rlbl">当前轮次</div></div>
+    <div class="isec"><h4>🟢 存活</h4><ul class="alist" id="aList"></ul></div>
+    <div class="isec"><h4>💀 出局</h4><ul class="dlist" id="dList"></ul></div>
+    <div class="isec"><h4>📊 信任矩阵</h4><select id="tSel" onchange="renderTrust()" style="width:100%;margin-bottom:8px"></select><div id="tBars"></div></div>
+  </div>
+  <div class="chat">
+    <div class="chdr"><span id="cIcon">🌙</span><span id="cText">夜晚阶段</span><span style="flex:1"></span>
+      <div class="spd"><span>速度</span><input type="range" id="spdR" min="1" max="5" value="3" oninput="el('spdL').textContent=this.value+'x'"><span id="spdL">3x</span></div>
+    </div>
+    <div class="cbody" id="cBody"></div>
+    <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn bp" style="font-size:.82rem;padding:7px 16px" id="nextBtn" onclick="nextAct()">⏭️ 下一步</button>
+      <button class="btn bo" style="font-size:.82rem;padding:7px 16px" id="autoBtn" onclick="autoPlay()">▶️ 自动</button>
+      <button class="btn bo hidden" style="font-size:.82rem;padding:7px 16px" id="pauseBtn" onclick="pausePlay()">⏸️ 暂停</button>
+      <span style="flex:1"></span>
+      <button class="btn bo" style="font-size:.82rem;padding:7px 16px" onclick="showGod()">👁️ 上帝视角</button>
+    </div>
+  </div>
+  <div class="ipanel">
+    <div class="isec"><h4>🗳️ 本轮投票</h4><div id="vBoard" class="vboard"></div></div>
+    <div class="isec"><h4>📝 事件记录</h4><div id="eLog" style="max-height:180px;overflow-y:auto;font-size:.78rem;color:var(--dim)"></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ========== RESULT SCREEN ========== -->
+<div id="S_result" class="screen">
+<div id="rBanner" class="rbanner"></div>
+<div class="card"><h2>🎭 身份揭示</h2><table class="itable"><thead><tr><th>座位</th><th>玩家</th><th>身份</th><th>阵营</th><th>存活</th><th>出局轮</th><th>原因</th></tr></thead><tbody id="idBody"></tbody></table></div>
+<div class="card"><h2>🧠 个人视角思维报告</h2><div class="ptabs" id="tTabs"></div><div class="tcontent" id="tCont"><p style="color:var(--dim)">点击上方标签查看思维过程</p></div></div>
+<div class="card"><h2>📤 导出</h2><div class="egrid">
+  <div class="ecard" onclick="exportLog()"><div class="ei">📜</div><div class="en">全局对话</div><div class="ed">Markdown</div></div>
+  <div class="ecard" onclick="exportThoughts()"><div class="ei">🧠</div><div class="en">思维报告</div><div class="ed">每人一份</div></div>
+  <div class="ecard" onclick="exportJSON()"><div class="ei">💾</div><div class="en">JSON 存档</div><div class="ed">完整数据</div></div>
+</div></div>
+<div class="cbar"><button class="btn bp" onclick="resetGame()">🔄 新建对局</button><div></div></div>
+</div>
+</div>
+
+<!-- Overlays -->
+<div id="nightOv" class="ov hidden"><div class="box"><div style="font-size:3.5rem">🌙</div><h2 id="nTitle">夜晚降临</h2><p id="nDesc" style="color:var(--dim);margin-top:10px"></p><button class="btn bp mt" onclick="el('nightOv').classList.add('hidden')">继续</button></div></div>
+<div id="godOv" class="ov hidden" onclick="this.classList.add('hidden')"><div class="box" style="max-width:650px;text-align:left;max-height:75vh;overflow-y:auto" onclick="event.stopPropagation()"><h2 style="margin-bottom:14px">👁️ 上帝视角</h2><div id="godContent"></div><button class="btn bo mt" onclick="el('godOv').classList.add('hidden')">关闭</button></div></div>
+
+<script src="game.js"></script>
+</body>
+</html>
