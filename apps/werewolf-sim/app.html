@@ -103,7 +103,7 @@ textarea{resize:vertical;min-height:50px;width:100%}
 </head>
 <body>
 <div class="hdr">
-  <h1>🐺 狼人杀模拟系统 v2.0</h1>
+  <h1>🐺 狼人杀模拟系统 v3.0</h1>
   <div style="display:flex;align-items:center;gap:12px">
     <span id="gid" style="font-size:.8rem;color:var(--dim)"></span>
     <span id="pbadge" class="badge b-cfg">⚙️ 配置中</span>
@@ -178,6 +178,7 @@ textarea{resize:vertical;min-height:50px;width:100%}
 <div class="gboard">
   <div class="ipanel">
     <div class="isec tc"><div class="rind" id="rDisp">1</div><div class="rlbl">当前轮次</div></div>
+    <div class="isec" id="sheriffSec" style="display:none"><h4>🏅 警长</h4><div id="sheriffDisp" style="font-weight:700;color:var(--accent2);font-size:.92rem">无</div></div>
     <div class="isec"><h4>🟢 存活</h4><ul class="alist" id="aList"></ul></div>
     <div class="isec"><h4>💀 出局</h4><ul class="dlist" id="dList"></ul></div>
     <div class="isec"><h4>📊 信任矩阵</h4><select id="tSel" onchange="renderTrust()" style="width:100%;margin-bottom:8px"></select><div id="tBars"></div></div>

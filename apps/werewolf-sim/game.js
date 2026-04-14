@@ -1,5 +1,5 @@
 // ============================================================
-// 🐺 Werewolf Simulation Frontend Engine v2.1 (bugfix)
+// 🐺 Werewolf Simulation Frontend Engine v3.0 (rules overhaul)
 // ============================================================
 
 const el = (id) => document.getElementById(id);
@@ -9,17 +9,18 @@ const ROLES = {
   seer: { name: "预言家", emoji: "\u{1F52E}", faction: "good", color: "#9b59b6" },
   witch: { name: "女巫", emoji: "\u{1F9EA}", faction: "good", color: "#2ecc71" },
   hunter: { name: "猎人", emoji: "\u{1F52B}", faction: "good", color: "#e67e22" },
+  guard: { name: "守卫", emoji: "\u{1F6E1}\uFE0F", faction: "good", color: "#3498db" },
   villager: { name: "平民", emoji: "\u{1F464}", faction: "good", color: "#95a5a6" },
 };
 
 const PRESETS = {
-  6: { werewolf: 2, seer: 1, witch: 1, hunter: 0, villager: 2 },
-  7: { werewolf: 2, seer: 1, witch: 1, hunter: 1, villager: 2 },
-  8: { werewolf: 3, seer: 1, witch: 1, hunter: 1, villager: 2 },
-  9: { werewolf: 3, seer: 1, witch: 1, hunter: 1, villager: 3 },
-  10: { werewolf: 4, seer: 1, witch: 1, hunter: 1, villager: 3 },
-  11: { werewolf: 4, seer: 1, witch: 1, hunter: 1, villager: 4 },
-  12: { werewolf: 4, seer: 1, witch: 1, hunter: 1, villager: 5 },
+  6: { werewolf: 2, seer: 1, witch: 1, hunter: 0, guard: 0, villager: 2 },
+  7: { werewolf: 2, seer: 1, witch: 1, hunter: 1, guard: 0, villager: 2 },
+  8: { werewolf: 3, seer: 1, witch: 1, hunter: 1, guard: 1, villager: 1 },
+  9: { werewolf: 3, seer: 1, witch: 1, hunter: 1, guard: 1, villager: 2 },
+  10: { werewolf: 4, seer: 1, witch: 1, hunter: 1, guard: 1, villager: 2 },
+  11: { werewolf: 4, seer: 1, witch: 1, hunter: 1, guard: 1, villager: 3 },
+  12: { werewolf: 4, seer: 1, witch: 1, hunter: 1, guard: 1, villager: 4 },
 };
 
 const DEMO = [
@@ -134,7 +135,7 @@ function fillSquad() {
 const WIN_MODES = {
   massacre: { name: "\u5C60\u57CE", desc: "\u72FC\u4EBA\u6570 \u2265 \u597D\u4EBA\u603B\u6570", check: function(w, g) { return w >= g; } },
   slaughter: { name: "\u5C60\u8FB9", desc: "\u6240\u6709\u795E\u804C\u6B7B\u4EA1 \u6216 \u6240\u6709\u5E73\u6C11\u6B7B\u4EA1", check: function(w, g, players) {
-    var gods = players.filter(function(p) { return p.alive && (p.role === "seer" || p.role === "witch" || p.role === "hunter"); });
+    var gods = players.filter(function(p) { return p.alive && (p.role === "seer" || p.role === "witch" || p.role === "hunter" || p.role === "guard"); });
     var villagers = players.filter(function(p) { return p.alive && p.role === "villager"; });
     return gods.length === 0 || villagers.length === 0;
   }}
@@ -145,7 +146,10 @@ let G = {
   id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre" },
   players: [], roles: {}, assign: {}, round: 0, phase: "config",
   events: [], chat: [], thoughts: {}, trust: {}, winner: null,
-  aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null
+  aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null,
+  sheriff: null, // player name who is sheriff, null if no sheriff
+  sheriffElected: false, // has election happened
+  _guardTarget: null, _lastGuardTarget: null // guard tracking
 };
 let curStep = 1;
 
@@ -204,6 +208,7 @@ function updateHint() {
   if (p.seer) parts.push("预言家");
   if (p.witch) parts.push("女巫");
   if (p.hunter) parts.push("猎人");
+  if (p.guard) parts.push("守卫");
   if (p.villager) parts.push(p.villager + "平民");
   el("pcHint").innerHTML = "推荐：<strong>" + parts.join(" + ") + "</strong>";
 }
@@ -502,9 +507,12 @@ function startGame() {
     if (p.role === "seer") p.checked = {};
     if (p.role === "witch") { p.antUsed = false; p.poiUsed = false; }
     if (p.role === "hunter") p.canShoot = true;
+    if (p.role === "guard") p.lastGuarded = null;
   });
   G.round = 1; G.phase = "night"; G.events = []; G.chat = [];
   G.aq = []; G.ai = 0; G.winner = null; G.curEvent = null; G._wolfTarget = null;
+  G.sheriff = null; G.sheriffElected = false;
+  G._guardTarget = null; G._lastGuardTarget = null;
   switchScreen("game");
   setPBadge("b-night", "\u{1F319} \u591C\u665A");
   updateGameUI();
@@ -539,13 +547,14 @@ function stressAssign(pool) {
       wolf: (c === "logical" && !c.includes("manip")) ? 0.9 : t.guilt_susceptibility > 0.5 ? 0.85 : (c.includes("manip") || c.includes("strat")) ? 0.3 : 0.5,
       seer: c.includes("intuit") ? 0.9 : 0.4,
       witch: c.includes("evid") ? 0.9 : 0.4,
-      hunter: (t.assertiveness || 0) > 0.6 ? 0.9 : 0.4
+      hunter: (t.assertiveness || 0) > 0.6 ? 0.9 : 0.4,
+      guard: (t.attention_to_detail || 0) > 0.7 ? 0.9 : (t.empathy || 0) > 0.6 ? 0.8 : 0.4
     };
   });
   var rem = G.players.slice();
   var a = {};
   var wc = pool.filter(function (r) { return r === "werewolf"; }).length;
-  ["seer", "witch", "hunter"].forEach(function (role) {
+  ["seer", "witch", "hunter", "guard"].forEach(function (role) {
     if (pool.includes(role) && rem.length) {
       rem.sort(function (x, y) { return (sc[y.name][role] || 0) - (sc[x.name][role] || 0); });
       a[rem[0].name] = role;
@@ -567,21 +576,34 @@ function buildActions() {
   var wolves = alive.filter(function (p) { return p.role === "werewolf"; });
   var seer = alive.find(function (p) { return p.role === "seer"; });
   var witch = alive.find(function (p) { return p.role === "witch"; });
+  var guard = alive.find(function (p) { return p.role === "guard"; });
 
+  // === NIGHT PHASE ===
   q.push({ type: "phase", ph: "night", txt: "\u{1F319} \u7B2C" + r + "\u8F6E\u00B7\u591C\u665A" });
+  // Night order: Guard -> Wolf -> Witch -> Seer
+  if (guard) q.push({ type: "guard", player: guard.name, r: r });
   if (wolves.length) {
     wolves.forEach(function (w) { q.push({ type: "wolf_talk", player: w.name, r: r }); });
     q.push({ type: "wolf_kill", r: r });
   }
-  if (seer) q.push({ type: "seer", player: seer.name, r: r });
   if (witch) q.push({ type: "witch", player: witch.name, r: r });
+  if (seer) q.push({ type: "seer", player: seer.name, r: r });
+  q.push({ type: "night_resolve", r: r });
 
+  // === DAY PHASE ===
   q.push({ type: "phase", ph: "day", txt: "\u2600\uFE0F \u7B2C" + r + "\u8F6E\u00B7\u5929\u4EAE\u4E86" });
   q.push({ type: "death_ann", r: r });
 
-  alive.sort(function (a, b) { return a.seat - b.seat; });
-  alive.forEach(function (p) { q.push({ type: "speech", player: p.name, r: r }); });
+  // Sheriff election on round 1 (before speeches)
+  if (r === 1 && !G.sheriffElected) {
+    q.push({ type: "sheriff_election", r: r });
+  }
 
+  // Speech order: sheriff decides direction, sheriff speaks last
+  var speakOrder = buildSpeechOrder(alive);
+  speakOrder.forEach(function (p) { q.push({ type: "speech", player: p.name, r: r }); });
+
+  // Vote phase
   if (!(r === 1 && G.cfg.noFV)) {
     q.push({ type: "phase", ph: "vote", txt: "\u{1F5F3}\uFE0F \u6295\u7968" });
     alive.forEach(function (p) { q.push({ type: "vote", player: p.name, r: r }); });
@@ -590,6 +612,19 @@ function buildActions() {
   q.push({ type: "check_end", r: r });
   G.aq = q;
   G.ai = 0;
+}
+
+function buildSpeechOrder(alive) {
+  // If sheriff exists, sheriff speaks last; others follow seat order
+  if (G.sheriff) {
+    var others = alive.filter(function(p) { return p.name !== G.sheriff && p.alive; });
+    var sh = alive.find(function(p) { return p.name === G.sheriff; });
+    others.sort(function(a, b) { return a.seat - b.seat; });
+    if (sh && sh.alive) others.push(sh);
+    return others;
+  }
+  // Default: seat order
+  return alive.slice().sort(function(a, b) { return a.seat - b.seat; });
 }
 
 function nextAct() {
@@ -621,7 +656,7 @@ function checkWolfWin() {
   if (wm && wm.check(aw, ag, G.players)) {
     var reason = G.cfg.winMode === "slaughter"
       ? (function() {
-          var gods = G.players.filter(function(p) { return p.alive && (p.role === "seer" || p.role === "witch" || p.role === "hunter"); });
+          var gods = G.players.filter(function(p) { return p.alive && (p.role === "seer" || p.role === "witch" || p.role === "hunter" || p.role === "guard"); });
           var villagers = G.players.filter(function(p) { return p.alive && p.role === "villager"; });
           if (gods.length === 0 && villagers.length === 0) return "\u795E\u804C\u548C\u5E73\u6C11\u5168\u706D";
           if (gods.length === 0) return "\u6240\u6709\u795E\u804C\u6B7B\u4EA1\uFF08\u5C60\u795E\uFF09";
@@ -642,12 +677,15 @@ function execAction(a) {
         el("cIcon").textContent = "\u{1F319}";
         el("cText").textContent = "\u591C\u665A";
         G._wolfTarget = null;
+        G._guardTarget = null;
       } else if (a.ph === "day") {
         setPBadge("b-day", "\u2600\uFE0F \u767D\u5929");
         el("cIcon").textContent = "\u2600\uFE0F";
         el("cText").textContent = "\u767D\u5929\u53D1\u8A00";
-        G.curEvent = { round: G.round, deaths: [], speeches: [], votes: {}, wolfTarget: null, saved: false, poisonTarget: null };
-        G.events.push(G.curEvent);
+        if (!G.curEvent) {
+          G.curEvent = { round: G.round, deaths: [], speeches: [], votes: {}, wolfTarget: null, saved: false, poisonTarget: null, guardTarget: null };
+          G.events.push(G.curEvent);
+        }
       } else if (a.ph === "vote") {
         setPBadge("b-vote", "\u{1F5F3}\uFE0F \u6295\u7968");
         el("cIcon").textContent = "\u{1F5F3}\uFE0F";
@@ -655,6 +693,14 @@ function execAction(a) {
         el("vBoard").innerHTML = "";
       }
       break;
+
+    case "guard": {
+      var res0 = genGuard(a.player);
+      G._guardTarget = res0.target;
+      addMsg(a.player, "\u5B88\u62A4 " + res0.target, "sys", "\u{1F6E1}\uFE0F");
+      addThought(a.player, a.r, "night", res0.thought);
+      break;
+    }
 
     case "wolf_talk": {
       var res = genWolfTalk(a.player);
@@ -669,10 +715,11 @@ function execAction(a) {
       if (tgt) {
         addSys("\u{1F43A} \u72FC\u4EBA\u76EE\u6807\uFF1A" + tgt, "death");
         if (!G.curEvent) {
-          G.curEvent = { round: G.round, deaths: [], speeches: [], votes: {}, wolfTarget: tgt, saved: false, poisonTarget: null };
+          G.curEvent = { round: G.round, deaths: [], speeches: [], votes: {}, wolfTarget: tgt, saved: false, poisonTarget: null, guardTarget: G._guardTarget };
           G.events.push(G.curEvent);
         } else {
           G.curEvent.wolfTarget = tgt;
+          G.curEvent.guardTarget = G._guardTarget;
         }
       }
       break;
@@ -704,34 +751,87 @@ function execAction(a) {
       break;
     }
 
-    case "death_ann": {
+    case "night_resolve": {
+      // Unified night resolution: Guard -> Wolf knife -> Witch save -> Witch poison
       var ev = G.curEvent;
+      if (!ev) {
+        ev = { round: G.round, deaths: [], speeches: [], votes: {}, wolfTarget: null, saved: false, poisonTarget: null, guardTarget: G._guardTarget };
+        G.curEvent = ev;
+        G.events.push(ev);
+      }
       var deaths = [];
-      if (ev && ev.wolfTarget && !ev.saved) {
-        var victim = G.players.find(function (p) { return p.name === ev.wolfTarget; });
-        if (victim && victim.alive) {
-          kill(victim, "wolf_kill");
-          deaths.push(victim.name + " \u88AB\u72FC\u4EBA\u51FB\u6740");
+      var wolfVictim = ev.wolfTarget;
+      var guardedPlayer = ev.guardTarget || G._guardTarget;
+      var witchSaved = ev.saved;
+      var poisonTarget = ev.poisonTarget;
+
+      // Wolf kill resolution
+      if (wolfVictim) {
+        var isGuarded = guardedPlayer === wolfVictim;
+        if (isGuarded && witchSaved) {
+          // Same guard + same save = DEAD (奶穿 / 同守同救)
+          var victim = G.players.find(function(p) { return p.name === wolfVictim; });
+          if (victim && victim.alive) {
+            kill(victim, "guard_save_clash");
+            deaths.push(victim.name + " \u540C\u5B88\u540C\u6551\u2192\u6B7B\u4EA1\uFF08\u5976\u7A7F\uFF09");
+          }
+        } else if (isGuarded) {
+          // Guarded, not saved -> survives
+          addSys("\u{1F6E1}\uFE0F \u5B88\u536B\u6210\u529F\u6321\u5200\uFF01");
+        } else if (witchSaved) {
+          // Not guarded, witch saved -> survives
+          // already handled, no death
+        } else {
+          // Not guarded, not saved -> dead
+          var victim2 = G.players.find(function(p) { return p.name === wolfVictim; });
+          if (victim2 && victim2.alive) {
+            kill(victim2, "wolf_kill");
+            deaths.push(victim2.name + " \u88AB\u72FC\u4EBA\u51FB\u6740");
+          }
         }
       }
-      if (ev && ev.poisonTarget) {
-        var pv = G.players.find(function (p) { return p.name === ev.poisonTarget; });
+
+      // Poison resolution (guard does NOT protect from poison)
+      if (poisonTarget) {
+        var pv = G.players.find(function(p) { return p.name === poisonTarget; });
         if (pv && pv.alive) {
           kill(pv, "witch_poison");
           deaths.push(pv.name + " \u88AB\u6BD2\u6740");
+          // Poisoned player loses all skills
           if (pv.role === "hunter") pv.canShoot = false;
         }
       }
-      if (ev) ev.deaths = deaths;
-      if (deaths.length) {
-        deaths.forEach(function (d) { addSys("\u{1F480} " + d, "death"); });
+
+      ev.deaths = deaths;
+      // Update guard tracking
+      G._lastGuardTarget = G._guardTarget;
+      break;
+    }
+
+    case "death_ann": {
+      var ev1 = G.curEvent;
+      var deaths1 = ev1 ? ev1.deaths : [];
+      if (deaths1.length) {
+        deaths1.forEach(function (d) { addSys("\u{1F480} " + d, "death"); });
       } else {
         addSys("\u{1F54A}\uFE0F \u5E73\u5B89\u591C\u2014\u2014\u6628\u591C\u65E0\u4EBA\u6B7B\u4EA1");
       }
       // Check win condition after deaths
       var wc0 = checkWolfWin();
       if (wc0.over) { endGame(wc0.winner, wc0.reason); return; }
+      // Sheriff death check - transfer or tear
+      if (G.sheriff) {
+        var sheriffPlayer = G.players.find(function(p) { return p.name === G.sheriff; });
+        if (sheriffPlayer && !sheriffPlayer.alive) {
+          handleSheriffDeath(sheriffPlayer);
+        }
+      }
       updateGameUI();
+      break;
+    }
+
+    case "sheriff_election": {
+      runSheriffElection();
       break;
     }
 
@@ -739,7 +839,9 @@ function execAction(a) {
       var sp = G.players.find(function (x) { return x.name === a.player; });
       if (!sp || !sp.alive) break;
       var res4 = genSpeech(a.player);
-      addMsg(a.player, res4.speech, "good", "\u{1F4AC}");
+      var speechLabel = "\u{1F4AC}";
+      if (sp.name === G.sheriff) speechLabel = "\u{1F3C5}\u{1F4AC}";
+      addMsg(a.player, res4.speech, "good", speechLabel);
       addThought(a.player, a.r, "speech", res4.inner);
       if (G.curEvent) G.curEvent.speeches.push({ name: a.player, speech: res4.speech });
       break;
@@ -749,9 +851,14 @@ function execAction(a) {
       var vp = G.players.find(function (x) { return x.name === a.player; });
       if (!vp || !vp.alive) break;
       var res5 = genVote(a.player);
-      addVote(a.player, res5.target);
+      var voteWeight = (vp.name === G.sheriff) ? 1.5 : 1;
+      addVote(a.player, res5.target, voteWeight);
       addThought(a.player, a.r, "vote", res5.thought);
-      if (G.curEvent) G.curEvent.votes[a.player] = res5.target;
+      if (G.curEvent) {
+        if (!G.curEvent.voteWeights) G.curEvent.voteWeights = {};
+        G.curEvent.votes[a.player] = res5.target;
+        G.curEvent.voteWeights[a.player] = voteWeight;
+      }
       var tr = G.trust[a.player];
       if (tr && tr[res5.target] !== undefined) tr[res5.target] = Math.max(0, tr[res5.target] - 0.08);
       break;
@@ -760,29 +867,32 @@ function execAction(a) {
     case "vote_res": {
       var ev2 = G.curEvent;
       if (!ev2) break;
+      // Count votes with weights (sheriff = 1.5)
       var vc = {};
       Object.entries(ev2.votes).forEach(function (entry) {
-        vc[entry[1]] = (vc[entry[1]] || 0) + 1;
+        var voter = entry[0], target = entry[1];
+        var weight = (ev2.voteWeights && ev2.voteWeights[voter]) || 1;
+        vc[target] = (vc[target] || 0) + weight;
       });
       var keys = Object.keys(vc);
       if (!keys.length) { addSys("\u65E0\u4EBA\u6295\u7968"); break; }
       var maxV = Math.max.apply(null, Object.values(vc));
       var tops = keys.filter(function (n) { return vc[n] === maxV; });
       if (tops.length === 1) {
-        var exiled = G.players.find(function (p) { return p.name === tops[0]; });
-        if (exiled) {
-          kill(exiled, "vote_exile");
-          addSys("\u{1F5F3}\uFE0F " + exiled.name + " \u88AB\u653E\u9010 \u2192 " + ROLES[exiled.role].emoji + ROLES[exiled.role].name, "death");
-          if (exiled.role === "hunter" && exiled.canShoot) {
-            var htgt = G.players.filter(function (p) { return p.alive && p.name !== exiled.name; });
-            if (htgt.length) {
-              var shot = htgt[Math.floor(Math.random() * htgt.length)];
-              kill(shot, "hunter_shot");
-              addSys("\u{1F52B} \u730E\u4EBA" + exiled.name + "\u5F00\u67AA\u5E26\u8D70" + shot.name, "death");
-            }
+        resolveExile(tops[0]);
+      } else {
+        // Tie handling
+        if (G.sheriff) {
+          // Sheriff tiebreak (归票权)
+          var sheriffAlive = G.players.find(function(p) { return p.name === G.sheriff && p.alive; });
+          if (sheriffAlive) {
+            // Sheriff picks one of the tied players
+            var pick = sheriffTiebreak(tops);
+            addSys("\u{1F3C5} \u8B66\u957F" + G.sheriff + "\u884C\u4F7F\u5F52\u7968\u6743\uFF0C\u51B3\u5B9A\u653E\u9010" + pick);
+            resolveExile(pick);
+            break;
           }
         }
-      } else {
         addSys("\u2696\uFE0F \u5E73\u7968(" + tops.join("\u3001") + ")\uFF0C\u65E0\u4EBA\u51FA\u5C40");
       }
       updateGameUI();
@@ -794,6 +904,168 @@ function execAction(a) {
       if (wce.over) endGame(wce.winner, wce.reason);
       break;
     }
+  }
+}
+
+function resolveExile(targetName) {
+  var exiled = G.players.find(function (p) { return p.name === targetName; });
+  if (!exiled) return;
+  kill(exiled, "vote_exile");
+  addSys("\u{1F5F3}\uFE0F " + exiled.name + " \u88AB\u653E\u9010 \u2192 " + ROLES[exiled.role].emoji + ROLES[exiled.role].name, "death");
+  // Sheriff death
+  if (exiled.name === G.sheriff) {
+    handleSheriffDeath(exiled);
+  }
+  // Hunter shot (only if not poisoned)
+  if (exiled.role === "hunter" && exiled.canShoot) {
+    var htgt = G.players.filter(function (p) { return p.alive && p.name !== exiled.name; });
+    if (htgt.length) {
+      var shot = htgt[Math.floor(Math.random() * htgt.length)];
+      kill(shot, "hunter_shot");
+      addSys("\u{1F52B} \u730E\u4EBA" + exiled.name + "\u5F00\u67AA\u5E26\u8D70" + shot.name, "death");
+      if (shot.name === G.sheriff) handleSheriffDeath(shot);
+    }
+  }
+  // Check win after exile
+  var wcPost = checkWolfWin();
+  if (wcPost.over) { endGame(wcPost.winner, wcPost.reason); }
+}
+
+// ============ SHERIFF SYSTEM ============
+function runSheriffElection() {
+  G.sheriffElected = true;
+  var alive = G.players.filter(function(p) { return p.alive; });
+  // AI decides who runs for sheriff
+  var candidates = [];
+  alive.forEach(function(p) {
+    var shouldRun = false;
+    if (p.role === "seer") shouldRun = true; // Seer almost always runs
+    else if (p.role === "werewolf" && Math.random() < 0.4) shouldRun = true; // Wolf may 悍跳
+    else if (Math.random() < 0.25) shouldRun = true; // Others occasionally
+    if (shouldRun) candidates.push(p);
+  });
+  if (candidates.length === 0) {
+    addSys("\u{1F3DB}\uFE0F \u65E0\u4EBA\u53C2\u9009\u8B66\u957F\uFF0C\u672C\u5C40\u65E0\u8B66\u957F");
+    return;
+  }
+  addSys("\u{1F3DB}\uFE0F \u8B66\u957F\u7ADE\u9009\u5F00\u59CB\uFF01\u4E0A\u8B66\u73A9\u5BB6\uFF1A" + candidates.map(function(p) { return p.name; }).join("\u3001"));
+
+  // Campaign speeches
+  candidates.forEach(function(p) {
+    var speech = genCampaignSpeech(p);
+    addMsg(p.name, speech.text, "good", "\u{1F3DB}\uFE0F \u7ADE\u9009");
+    addThought(p.name, G.round, "election", speech.thought);
+  });
+
+  // Voting by non-candidates
+  var voters = alive.filter(function(p) { return !candidates.some(function(c) { return c.name === p.name; }); });
+  var votes = {};
+  candidates.forEach(function(c) { votes[c.name] = 0; });
+  voters.forEach(function(v) {
+    // Simple vote logic: trust-weighted
+    var best = candidates[0].name;
+    var bestScore = -1;
+    candidates.forEach(function(c) {
+      var trust = (G.trust[v.name] && G.trust[v.name][c.name]) || 0.5;
+      var score = trust + Math.random() * 0.3;
+      if (score > bestScore) { bestScore = score; best = c.name; }
+    });
+    votes[best] = (votes[best] || 0) + 1;
+    addSys(v.name + " \u6295\u7ED9 " + best);
+  });
+
+  // Determine winner
+  var maxVotes = Math.max.apply(null, Object.values(votes));
+  var winners = Object.keys(votes).filter(function(n) { return votes[n] === maxVotes; });
+  if (winners.length === 1) {
+    G.sheriff = winners[0];
+    addSys("\u{1F3C5} " + G.sheriff + " \u5F53\u9009\u8B66\u957F\uFF01\u62E5\u67091.5\u7968\u6743\u91CD\u548C\u5F52\u7968\u6743\u3002", "sys");
+  } else {
+    // Tie -> re-vote between tied candidates (simplified)
+    addSys("\u2696\uFE0F \u5E73\u7968(" + winners.join("\u3001") + ")\uFF0C\u672C\u5C40\u65E0\u8B66\u957F");
+    G.sheriff = null;
+  }
+}
+
+function genCampaignSpeech(player) {
+  var p = player;
+  if (p.role === "seer") {
+    return {
+      text: "\u6211\u662F\u9884\u8A00\u5BB6\uFF0C\u6211\u6709\u67E5\u9A8C\u4FE1\u606F\u53EF\u4EE5\u4E3A\u5927\u5BB6\u63D0\u4F9B\u65B9\u5411\u3002\u8BF7\u7ED9\u6211\u8B66\u5F7D\uFF0C\u6211\u7684\u8B66\u5F7D\u6D41\u4F1A\u4FDD\u62A4\u597D\u4EBA\u9635\u8425\u3002",
+      thought: "\u3010\u5185\u5FC3\u3011\u62A2\u8B66\u5F7D\u662F\u9884\u8A00\u5BB6\u7684\u6838\u5FC3\u64CD\u4F5C\u3002\u62FF\u5230\u8B66\u5F7D\u5373\u4F7F\u6211\u6B7B\u4E86\u4E5F\u80FD\u901A\u8FC7\u79FB\u4EA4\u4F20\u9012\u4FE1\u606F\u3002"
+    };
+  } else if (p.role === "werewolf") {
+    return {
+      text: "\u6211\u662F\u597D\u4EBA\uFF0C\u6211\u80FD\u5E26\u9886\u5927\u5BB6\u627E\u51FA\u72FC\u4EBA\u3002\u7ED9\u6211\u8B66\u5F7D\uFF0C\u6211\u4E0D\u4F1A\u8BA9\u4F60\u4EEC\u5931\u671B\u3002",
+      thought: "\u3010\u5185\u5FC3\u3011\u609F\u8DF3\u62A2\u8B66\u5F7D\uFF01\u62FF\u52301.5\u7968\u548C\u53D1\u8A00\u63A7\u5236\u6743\u5BF9\u72FC\u961F\u6781\u4E3A\u6709\u5229\u3002"
+    };
+  } else {
+    return {
+      text: "\u6211\u80FD\u4FDD\u6301\u5BA2\u89C2\uFF0C\u5E26\u9886\u5927\u5BB6\u7406\u6027\u5206\u6790\u3002\u7ED9\u6211\u8B66\u5F7D\u3002",
+      thought: "\u3010\u5185\u5FC3\u3011\u7ADE\u4E89\u4E0B\u8B66\u5F7D\uFF0C\u770B\u770B\u80FD\u4E0D\u80FD\u62FF\u5230\u3002"
+    };
+  }
+}
+
+function handleSheriffDeath(player) {
+  // AI decides: transfer or tear badge
+  var alive = G.players.filter(function(p) { return p.alive && p.name !== player.name; });
+  if (!alive.length) {
+    G.sheriff = null;
+    addSys("\u{1F3C5} \u8B66\u5F7D\u6D88\u5931");
+    return;
+  }
+  // Seer/good tends to transfer; wolf tends to tear or transfer to wolf teammate
+  var shouldTear = false;
+  if (player.role === "werewolf") {
+    shouldTear = Math.random() < 0.5; // Wolf may tear to deny info
+  } else {
+    shouldTear = Math.random() < 0.15; // Good player rarely tears
+  }
+
+  if (shouldTear) {
+    G.sheriff = null;
+    addSys("\u{1F3C5} " + player.name + " \u64D5\u6389\u8B66\u5F7D\uFF01\u672C\u5C40\u4E0D\u518D\u6709\u8B66\u957F\u3002");
+  } else {
+    // Transfer to most trusted alive player (or wolf teammate if wolf)
+    var target;
+    if (player.role === "werewolf") {
+      var wolfMate = alive.find(function(p) { return p.role === "werewolf"; });
+      target = wolfMate || alive[Math.floor(Math.random() * alive.length)];
+    } else {
+      // Transfer to highest trust
+      var bestTrust = -1;
+      alive.forEach(function(p) {
+        var t = (G.trust[player.name] && G.trust[player.name][p.name]) || 0.5;
+        if (t > bestTrust) { bestTrust = t; target = p; }
+      });
+      if (!target) target = alive[0];
+    }
+    G.sheriff = target.name;
+    addSys("\u{1F3C5} " + player.name + " \u5C06\u8B66\u5F7D\u79FB\u4EA4\u7ED9 " + target.name);
+  }
+}
+
+function sheriffTiebreak(tiedPlayers) {
+  // Sheriff picks the most suspicious player among tied ones
+  var sheriff = G.players.find(function(p) { return p.name === G.sheriff; });
+  if (!sheriff) return tiedPlayers[0];
+  if (sheriff.role === "werewolf") {
+    // Wolf sheriff picks a good player
+    var goodTarget = tiedPlayers.find(function(n) {
+      var p = G.players.find(function(x) { return x.name === n; });
+      return p && p.role !== "werewolf";
+    });
+    return goodTarget || tiedPlayers[0];
+  } else {
+    // Good sheriff picks based on lowest trust
+    var lowestTrust = 2;
+    var pick = tiedPlayers[0];
+    tiedPlayers.forEach(function(n) {
+      var t = (G.trust[sheriff.name] && G.trust[sheriff.name][n]) || 0.5;
+      if (t < lowestTrust) { lowestTrust = t; pick = n; }
+    });
+    return pick;
   }
 }
 
@@ -820,6 +1092,28 @@ function endGame(winner, reason) {
 }
 
 // ============ AI GENERATION ============
+function genGuard(name) {
+  var p = G.players.find(function(x) { return x.name === name; });
+  var alive = G.players.filter(function(x) { return x.alive; });
+  // Cannot guard same person two nights in a row
+  var lastGuard = p.lastGuarded || G._lastGuardTarget;
+  var candidates = alive.filter(function(x) { return x.name !== lastGuard; });
+  if (!candidates.length) candidates = alive; // fallback
+  // AI logic: prioritize likely targets (seer jumpers, active speakers)
+  var tgt = candidates[Math.floor(Math.random() * candidates.length)];
+  // Slight preference to guard self or high-value targets
+  var seerCand = candidates.find(function(x) { return x.role === "seer"; });
+  if (seerCand && Math.random() < 0.3) tgt = seerCand;
+  else if (Math.random() < 0.2) {
+    var selfCand = candidates.find(function(x) { return x.name === name; });
+    if (selfCand) tgt = selfCand;
+  }
+  p.lastGuarded = tgt.name;
+  var thought = "\u3010\u5185\u5FC3\u3011\u4ECA\u665A\u5B88\u62A4" + tgt.name + "\u3002";
+  if (lastGuard) thought += "\u4E0A\u4E00\u665C\u5B88\u4E86" + lastGuard + "\uFF0C\u8FD9\u6B21\u5FC5\u987B\u6362\u4EBA\u3002";
+  return { target: tgt.name, thought: thought };
+}
+
 function genWolfTalk(name) {
   var alive = G.players.filter(function (p) { return p.alive && p.role !== "werewolf"; });
   if (!alive.length) return { speech: "...", thought: "\u65E0\u76EE\u6807", target: null };
@@ -852,15 +1146,23 @@ function genSeer(name) {
 function genWitch(name, victim) {
   var p = G.players.find(function (x) { return x.name === name; });
   var action = "none", poisonTarget = null, thought = "";
+  var isSelf = victim === name;
+  // Save logic: only first night can self-save
   if (victim && !p.antUsed) {
-    if (Math.random() < (G.round === 1 ? 0.7 : 0.35)) {
+    var canSave = true;
+    if (isSelf && G.round > 1) {
+      canSave = false; // Cannot self-save after first night
+      thought = "\u3010\u5185\u5FC3\u3011\u6211\u88AB\u5200\u4E86\uFF0C\u4F46\u9996\u591C\u4E4B\u540E\u4E0D\u80FD\u81EA\u6551...\u53EA\u80FD\u8BA4\u547D\u3002";
+    }
+    if (canSave && Math.random() < (G.round === 1 ? 0.7 : 0.35)) {
       action = "save";
       p.antUsed = true;
-      thought = "\u3010\u5185\u5FC3\u3011" + victim + "\u88AB\u6740\uFF0C" + (G.round === 1 ? "\u7B2C\u4E00\u665A\u5FC5\u987B\u6551" : "\u89E3\u836F\u8FD8\u662F\u7528\u5427") + "\u3002";
-    } else {
+      thought = "\u3010\u5185\u5FC3\u3011" + victim + "\u88AB\u6740\uFF0C" + (isSelf ? "\u9996\u591C\u81EA\u6551\uFF01" : (G.round === 1 ? "\u7B2C\u4E00\u665A\u5FC5\u987B\u6551" : "\u89E3\u836F\u8FD8\u662F\u7528\u5427")) + "\u3002";
+    } else if (canSave) {
       thought = "\u3010\u5185\u5FC3\u3011" + victim + "\u88AB\u6740\u3002\u89E3\u836F\u53EA\u6709\u4E00\u74F6\uFF0C\u5FCD\u4F4F...";
     }
   }
+  // Poison logic: only if didn't save (same night only one drug)
   if (action === "none" && !p.poiUsed && !(G.round === 1 && G.cfg.noFP)) {
     var suspects = G.players.filter(function (x) { return x.alive && x.name !== name && x.role === "werewolf"; });
     if (suspects.length && Math.random() < 0.2) {
@@ -912,6 +1214,7 @@ function genSpeech(name) {
     speech = villagerSpeeches[Math.floor(Math.random() * villagerSpeeches.length)];
     if (p.role === "hunter") inner = "\u3010\u5185\u5FC3\u3011\u6211\u662F\u730E\u4EBA\uFF0C\u88AB\u6295\u51FA\u53BB\u81F3\u5C11\u5E26\u8D70\u4E00\u4E2A\u3002";
     else if (p.role === "witch") inner = "\u3010\u5185\u5FC3\u3011\u624B\u91CC\u6709\u836F\uFF0C\u4E0D\u80FD\u66B4\u9732\u3002";
+    else if (p.role === "guard") inner = "\u3010\u5185\u5FC3\u3011\u6211\u662F\u5B88\u536B\uFF0C\u4ECA\u665A\u8981\u5224\u65AD\u72FC\u4EBA\u4F1A\u5200\u8C01\u3002";
     else inner = "\u3010\u5185\u5FC3\u3011\u4FE1\u606F\u592A\u5C11\uFF0C\u53EA\u80FD\u9760\u5206\u6790\u3002";
   }
 
@@ -980,11 +1283,12 @@ function addMsg(name, txt, cls, label) {
   el("cBody").scrollTop = el("cBody").scrollHeight;
 }
 
-function addVote(voter, target) {
+function addVote(voter, target, weight) {
   var b = el("vBoard");
   var cell = document.createElement("div");
   cell.className = "vcell";
-  cell.innerHTML = '<span class="vn">' + escHtml(voter) + '</span><span class="va">\u2192</span><span class="vt">' + escHtml(target) + '</span>';
+  var weightStr = weight > 1 ? ' <span style="color:var(--accent2);font-size:.75rem">(' + weight + '\u7968)</span>' : '';
+  cell.innerHTML = '<span class="vn">' + escHtml(voter) + weightStr + '</span><span class="va">\u2192</span><span class="vt">' + escHtml(target) + '</span>';
   b.appendChild(cell);
 }
 
@@ -1004,13 +1308,27 @@ function addThought(name, round, phase, txt) {
 
 function updateGameUI() {
   el("rDisp").textContent = G.round;
+  // Sheriff display
+  var sheriffSec = el("sheriffSec");
+  var sheriffDisp = el("sheriffDisp");
+  if (G.sheriff) {
+    sheriffSec.style.display = "";
+    sheriffDisp.textContent = "\u{1F3C5} " + G.sheriff;
+  } else if (G.sheriffElected) {
+    sheriffSec.style.display = "";
+    sheriffDisp.textContent = "\u65E0\u8B66\u957F";
+    sheriffDisp.style.color = "var(--dim)";
+  } else {
+    sheriffSec.style.display = "none";
+  }
   var al = el("aList"), dl = el("dList"), ts = el("tSel");
   al.innerHTML = ""; dl.innerHTML = ""; ts.innerHTML = "";
   G.players.forEach(function (p) {
     var r = ROLES[p.role];
     if (p.alive) {
       var li = document.createElement("li");
-      li.textContent = r.emoji + " " + p.name;
+      var sheriffTag = (p.name === G.sheriff) ? " \u{1F3C5}" : "";
+      li.textContent = r.emoji + " " + p.name + sheriffTag;
       al.appendChild(li);
       var opt = document.createElement("option");
       opt.value = p.name;
@@ -1089,10 +1407,11 @@ function buildResult(winner, reason) {
   G.players.forEach(function (p) {
     var r = ROLES[p.role];
     var f = r.faction === "wolf" ? "\u{1F43A}\u72FC\u4EBA" : "\u{1F464}\u597D\u4EBA";
+    var sheriffMark = (p.name === G.sheriff) ? " \u{1F3C5}" : "";
     var tr = document.createElement("tr");
     tr.innerHTML =
       "<td>" + p.seat + "</td>" +
-      "<td>" + escHtml(p.name) + "</td>" +
+      "<td>" + escHtml(p.name) + sheriffMark + "</td>" +
       "<td>" + r.emoji + r.name + "</td>" +
       "<td>" + f + "</td>" +
       "<td>" + (p.alive ? "\u2705" : "\u274C") + "</td>" +
@@ -1204,7 +1523,9 @@ function resetGame() {
     id: "", cfg: { pc: 8, mode: "random", vb: "full", maxR: 10, noFP: false, noFV: false, winMode: "massacre" },
     players: [], roles: {}, assign: {}, round: 0, phase: "config",
     events: [], chat: [], thoughts: {}, trust: {}, winner: null,
-    aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null
+    aq: [], ai: 0, auto: null, curEvent: null, _wolfTarget: null,
+    sheriff: null, sheriffElected: false,
+    _guardTarget: null, _lastGuardTarget: null
   };
   el("cBody").innerHTML = "";
   el("vBoard").innerHTML = "";
