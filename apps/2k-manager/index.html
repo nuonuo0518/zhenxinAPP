@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2KOL2 经理阵容分析系统</title>
+<style>
+:root{--bg0:#0a0e1a;--bg1:#111827;--bg2:#1a2332;--bg3:#1e2a3d;--acc:#f59e0b;--acc2:#92631a;--t1:#e5e7eb;--t2:#9ca3af;--t3:#6b7280;--bd:#2d3748;--ok:#10b981;--no:#ef4444;--wa:#f59e0b;--info:#3b82f6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg0);color:var(--t1);min-height:100vh}
+.hd{background:linear-gradient(135deg,#1a2332,#0f172a);border-bottom:1px solid var(--bd);padding:14px 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.hd-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+.hd h1{font-size:19px;font-weight:700;background:linear-gradient(135deg,var(--acc),#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:10px}
+.hd h1 .ic{font-size:22px;-webkit-text-fill-color:initial}
+.hd-info{display:flex;gap:16px;font-size:11px;color:var(--t3)}
+.tabs{max-width:1440px;margin:0 auto;padding:10px 24px 0;display:flex;gap:4px;border-bottom:1px solid var(--bd)}
+.tab{padding:9px 18px;background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;font-weight:500}
+.tab:hover{color:var(--t2)}.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.main{max-width:1440px;margin:0 auto;padding:18px 24px}
+.pane{display:none}.pane.on{display:block}
+
+/* Filters */
+.flt{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.sb{flex:1;min-width:180px;max-width:280px;position:relative}
+.sb input{width:100%;padding:7px 10px 7px 32px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;color:var(--t1);font-size:12px;outline:none}
+.sb input:focus{border-color:var(--acc)}
+.sb::before{content:'🔍';position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:13px}
+.sel{padding:7px 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;color:var(--t1);font-size:12px;outline:none;cursor:pointer}
+
+/* Player Grid */
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.pc{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px;cursor:pointer;transition:.2s;position:relative;animation:fi .3s ease}
+.pc:hover{border-color:var(--acc2);background:var(--bg3);transform:translateY(-1px)}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.pc-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pc-n{font-size:14px;font-weight:600}.pc-v{font-size:10px;color:var(--t3);margin-top:1px}
+.tier{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.pos{padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;color:#fff;display:inline-block;margin-right:3px}
+.pc-r{font-size:11px;color:var(--acc);margin:4px 0;font-weight:500}
+.sts{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+.st{text-align:center;padding:3px;background:rgba(255,255,255,.03);border-radius:3px}
+.st-l{font-size:9px;color:var(--t3);display:block}.st-v{font-size:13px;font-weight:700}
+.st-v.h{color:var(--ok)}.st-v.m{color:var(--wa)}.st-v.l{color:var(--no)}
+.tgs{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
+.tg{padding:1px 5px;border-radius:3px;font-size:9px;background:rgba(245,158,11,.12);color:var(--acc);border:1px solid rgba(245,158,11,.18)}
+.btn-add{position:absolute;top:7px;right:7px;width:26px;height:26px;border-radius:5px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--acc);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s}
+.pc:hover .btn-add{opacity:1}.btn-add:hover{background:rgba(245,158,11,.25)}
+
+/* Lineup Builder */
+.lb{display:grid;grid-template-columns:320px 1fr;gap:18px;min-height:550px}
+.ls-t{font-size:12px;font-weight:600;color:var(--acc);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.5px}
+.ls-t:first-child{margin-top:0}
+.slot{background:var(--bg2);border:1px dashed var(--bd);border-radius:9px;padding:10px;min-height:52px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.2s;margin-bottom:6px}
+.slot:hover{border-color:var(--acc2)}.slot.on{border-style:solid}.slot.hl{border-color:var(--acc);background:rgba(245,158,11,.05)}
+.slot-p{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.slot-i{flex:1;min-width:0}
+.slot-n{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-r{font-size:10px;color:var(--t3)}
+.slot-ph{font-size:11px;color:var(--t3)}
+.slot-x{width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,.12);border:none;color:var(--no);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:.2s}
+.slot:hover .slot-x{opacity:1}
+.btn-clr{width:100%;margin-top:10px;padding:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:7px;color:#fca5a5;cursor:pointer;font-size:12px}
+
+/* Analysis */
+.ac{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+.ac h3{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.ov-g{display:grid;grid-template-columns:90px 1fr;gap:14px;align-items:center}
+.ring{width:80px;height:80px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6;stroke-linecap:round}
+.ring .bg{stroke:var(--bd)}.ring .fg{transition:stroke-dashoffset .8s}
+.ring .txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:800}
+.dim{display:flex;flex-direction:column;gap:7px}
+.dr{display:flex;align-items:center;gap:7px}
+.dl{width:60px;font-size:11px;color:var(--t2);flex-shrink:0}
+.db{flex:1;height:7px;background:var(--bd);border-radius:4px;overflow:hidden}
+.dbf{height:100%;border-radius:4px;transition:width .6s}
+.dv{width:28px;text-align:right;font-size:11px;font-weight:600}
+.wi{padding:7px 10px;border-radius:7px;font-size:11px;display:flex;align-items:flex-start;gap:6px;margin-bottom:5px}
+.wi.er{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
+.wi.wa{background:rgba(245,158,11,.1);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+.wi.gd{background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.2)}
+.wi.if{background:rgba(59,130,246,.1);color:#93c5fd;border:1px solid rgba(59,130,246,.2)}
+
+/* Tier List */
+.rt{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.rtb{padding:5px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:18px;font-size:11px;color:var(--t2);cursor:pointer;transition:.2s}
+.rtb:hover{border-color:var(--acc2)}.rtb.on{background:rgba(245,158,11,.12);border-color:var(--acc);color:var(--acc)}
+.ts{margin-bottom:16px}
+.ts-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ts-b{padding:3px 14px;border-radius:5px;font-size:15px;font-weight:800;color:#fff;min-width:46px;text-align:center}
+.ts-d{font-size:12px;color:var(--t2)}
+.ts-p{display:flex;gap:6px;flex-wrap:wrap;padding:10px;background:var(--bg2);border-radius:9px;border:1px solid var(--bd);min-height:44px}
+.chip{padding:5px 10px;background:rgba(255,255,255,.04);border-radius:5px;font-size:11px;display:flex;align-items:center;gap:5px;cursor:pointer;transition:.2s}
+.chip:hover{background:rgba(255,255,255,.08)}
+.chip-p{font-size:9px;font-weight:700;padding:1px 3px;border-radius:2px;color:#fff}
+
+/* Guide */
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
+.gc{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:18px}
+.gc h3{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.gc p,.gc li{font-size:12px;line-height:1.8;color:var(--t2)}.gc ul{padding-left:16px}.gc li{margin-bottom:3px}
+.hl{color:var(--acc);font-weight:600}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.kv:last-child{border-bottom:none}.kv-k{color:var(--t3)}.kv-v{color:var(--t1);font-weight:600}
+
+/* Modal */
+.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:200;justify-content:center;align-items:center;padding:20px}
+.mo.sh{display:flex}
+.md{background:var(--bg1);border:1px solid var(--bd);border-radius:14px;max-width:600px;width:100%;max-height:82vh;overflow-y:auto;padding:22px}
+.md-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.md-c{width:30px;height:30px;border-radius:7px;background:var(--bg2);border:1px solid var(--bd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ds{margin-bottom:14px}.ds h4{font-size:12px;color:var(--acc);margin-bottom:7px;text-transform:uppercase;letter-spacing:.4px}
+.tg2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.ti{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(255,255,255,.03);border-radius:5px}
+.tn{font-size:11px;color:var(--t2);flex:1}.tb{width:55px;height:5px;background:var(--bd);border-radius:3px;overflow:hidden}
+.tbf{height:100%;border-radius:3px}.tv{font-size:11px;font-weight:700;width:26px;text-align:right}
+.bdg{font-size:9px;padding:1px 4px;border-radius:3px;font-weight:600;display:inline-block;margin:1px}
+.bdg-h{background:rgba(239,68,68,.18);color:#fca5a5}.bdg-g{background:rgba(245,158,11,.18);color:#fbbf24}.bdg-s{background:rgba(156,163,175,.18);color:#d1d5db}
+.empty{text-align:center;padding:36px;color:var(--t3)}.empty .eic{font-size:42px;margin-bottom:10px}.empty p{font-size:13px}
+
+@media(max-width:768px){.lb{grid-template-columns:1fr}.pg{grid-template-columns:1fr}.gg{grid-template-columns:1fr}.tg2{grid-template-columns:1fr}.flt{flex-direction:column}.sb{max-width:100%}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="hd"><div class="hd-in">
+  <h1><span class="ic">🏀</span> 2KOL2 经理阵容分析系统</h1>
+  <div class="hd-info"><span>📊 2K经理呱 / 班草观 / 皮革厂</span><span>🔄 2026.04</span></div>
+</div></div>
+
+<nav class="tabs">
+  <button class="tab on" data-t="p1">🃏 球员库</button>
+  <button class="tab" data-t="p2">⚙️ 阵容搭配</button>
+  <button class="tab" data-t="p3">📋 天梯榜</button>
+  <button class="tab" data-t="p4">📖 战术攻略</button>
+</nav>
+
+<div class="main">
+  <!-- P1: Players -->
+  <div id="p1" class="pane on">
+    <div class="flt">
+      <div class="sb"><input id="sInp" placeholder="搜索球员名称..."></div>
+      <select class="sel" id="fPos"><option value="">全部位置</option><option value="PG">PG</option><option value="SG">SG</option><option value="SF">SF</option><option value="PF">PF</option><option value="C">C</option></select>
+      <select class="sel" id="fRole"><option value="">全部定位</option><option value="发牌员">发牌员</option><option value="射手">射手</option><option value="副攻手">副攻手</option><option value="内线">内线</option><option value="攻坚手">攻坚手</option></select>
+      <select class="sel" id="fTier"><option value="">全部强度</option><option value="S+">S+</option><option value="S">S</option><option value="A">A</option><option value="B">B</option></select>
+      <select class="sel" id="fSort"><option value="tier">按强度</option><option value="touch">按触球</option><option value="three">按三分</option><option value="def">按防守</option></select>
+    </div>
+    <div class="pg" id="pGrid"></div>
+  </div>
+
+  <!-- P2: Lineup -->
+  <div id="p2" class="pane">
+    <div class="lb">
+      <div>
+        <div class="ls-t">🏟️ 首发阵容</div>
+        <div id="sSlots"></div>
+        <div class="ls-t">🔄 替补阵容</div>
+        <div id="bSlots"></div>
+        <button class="btn-clr" onclick="clearAll()">🗑️ 清空阵容</button>
+      </div>
+      <div id="aPanel"><div class="empty"><div class="eic">📋</div><p>请添加球员到阵容槽位<br>系统将自动分析阵容强度</p></div></div>
+    </div>
+  </div>
+
+  <!-- P3: Tier -->
+  <div id="p3" class="pane"><div class="rt" id="rTabs"></div><div id="tCont"></div></div>
+
+  <!-- P4: Guide -->
+  <div id="p4" class="pane"><div class="gg" id="gGrid"></div></div>
+</div>
+
+<div class="mo" id="modal"><div class="md" id="mdC"></div></div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script>
+// ===== State =====
+const S = {
+  slot: null, // {g:'s'|'b', i:0}
+  tierRole: '全部',
+  lineup: {
+    s: [
+      {pos:'PG',role:'发牌员',p:null},
+      {pos:'SG',role:'射手',p:null},
+      {pos:'SF',role:'副攻手/射手',p:null},
+      {pos:'PF',role:'内线',p:null},
+      {pos:'C',role:'内线',p:null},
+    ],
+    b: [
+      {pos:'PG',role:'替补发牌',p:null},
+      {pos:'SG/SF',role:'替补射手',p:null},
+      {pos:'PF/C',role:'替补内线',p:null},
+    ]
+  }
+};
+
+// ===== Tabs =====
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById(b.dataset.t).classList.add('on');
+  if(b.dataset.t==='p3')renderTier();
+  if(b.dataset.t==='p4')renderGuide();
+});
+
+// ===== Helpers =====
+function sc(v,mx=100){const r=v/mx;return r>=.8?'h':r>=.5?'m':'l'}
+function tc(v,rev){return rev?(v<=25?'var(--ok)':v<=50?'var(--wa)':'var(--no)'):(v>=75?'var(--ok)':v>=45?'var(--wa)':'var(--no)')}
+
+// ===== P1: Players =====
+function renderP(){
+  const q=document.getElementById('sInp').value.toLowerCase();
+  const fp=document.getElementById('fPos').value;
+  const fr=document.getElementById('fRole').value;
+  const ft=document.getElementById('fTier').value;
+  const fs=document.getElementById('fSort').value;
+
+  let ps=PLAYERS.filter(p=>{
+    if(q&&!p.name.toLowerCase().includes(q)&&!p.version.toLowerCase().includes(q))return false;
+    if(fp&&!p.positions.includes(fp))return false;
+    if(fr&&!p.roles.some(r=>r.includes(fr)))return false;
+    if(ft&&p.tier!==ft)return false;
+    return true;
+  });
+
+  const to={'S+':0,S:1,A:2,B:3,C:4};
+  if(fs==='tier')ps.sort((a,b)=>to[a.tier]-to[b.tier]);
+  else if(fs==='touch')ps.sort((a,b)=>b.tend.touch-a.tend.touch);
+  else if(fs==='three')ps.sort((a,b)=>b.stats.three-a.stats.three);
+  else if(fs==='def')ps.sort((a,b)=>b.stats.def-a.stats.def);
+
+  document.getElementById('pGrid').innerHTML=ps.length?ps.map((p,i)=>`
+    <div class="pc" style="animation-delay:${i*.02}s" onclick="showD('${p.id}')">
+      <button class="btn-add" onclick="event.stopPropagation();addP('${p.id}')" title="加入阵容">+</button>
+      <div class="pc-h"><div><div class="pc-n">${p.name}</div><div class="pc-v">${p.version}</div></div>
+      <span class="tier" style="background:${TIER_COLORS[p.tier]}">${p.tier}</span></div>
+      <div>${p.positions.map(x=>`<span class="pos" style="background:${POS_COLORS[x]}">${x}</span>`).join('')}</div>
+      <div class="pc-r">${p.roles.join(' / ')}</div>
+      <div class="sts">
+        <div class="st"><span class="st-l">三分</span><span class="st-v ${sc(p.stats.three)}">${p.stats.three}</span></div>
+        <div class="st"><span class="st-l">防守</span><span class="st-v ${sc(p.stats.def)}">${p.stats.def}</span></div>
+        <div class="st"><span class="st-l">体力</span><span class="st-v ${sc(p.stats.stam,125)}">${p.stats.stam}</span></div>
+        <div class="st"><span class="st-l">触球</span><span class="st-v ${sc(p.tend.touch)}">${p.tend.touch}</span></div>
+        <div class="st"><span class="st-l">抢断</span><span class="st-v ${sc(p.tend.steal)}">${p.tend.steal}</span></div>
+        <div class="st"><span class="st-l">模型</span><span class="st-v">${p.stats.model}</span></div>
+      </div>
+      <div class="tgs">${p.tags.slice(0,3).map(t=>`<span class="tg">${t}</span>`).join('')}</div>
+    </div>`).join(''):'<div class="empty"><div class="eic">🔍</div><p>没有匹配的球员</p></div>';
+}
+
+document.getElementById('sInp').oninput=renderP;
+['fPos','fRole','fTier','fSort'].forEach(id=>document.getElementById(id).onchange=renderP);
+renderP();
+
+// ===== Modal =====
+function showD(id){
+  const p=PLAYERS.find(x=>x.id===id);if(!p)return;
+  const ts=[
+    {k:'touch',l:'触球倾向',d:'决定攻坚手'},
+    {k:'pass',l:'传球倾向',d:'传空位意愿'},
+    {k:'shot',l:'出手倾向',d:'持球出手'},
+    {k:'disc',l:'纪律倾向',d:'战术执行力'},
+    {k:'cut',l:'切入倾向',d:'越低越听话',r:1},
+    {k:'iso',l:'单挑倾向',d:'越低越听话',r:1},
+    {k:'steal',l:'持球抢断',d:'抢断频率'},
+    {k:'contest',l:'干扰投篮',d:'干扰出手'},
+    {k:'scrn3',l:'挡拆后三分',d:'借掩护出手'},
+    {k:'chgDir',l:'变向切入',d:'越高越易丢球',r:1},
+  ];
+  document.getElementById('mdC').innerHTML=`
+    <div class="md-h"><div>
+      <h2 style="font-size:18px;margin-bottom:3px">${p.name} <span class="tier" style="background:${TIER_COLORS[p.tier]};font-size:11px;vertical-align:middle">${p.tier}</span></h2>
+      <div style="font-size:12px;color:var(--t3)">${p.version} | ${p.positions.join('/')} | ${p.roles.join(' / ')}</div>
+    </div><button class="md-c" onclick="closeM()">✕</button></div>
+    <div class="ds"><h4>📝 简评</h4><p style="font-size:12px;line-height:1.8;color:var(--t2)">${p.note}</p></div>
+    <div class="ds"><h4>📊 核心数据</h4>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${[{l:'三分',v:p.stats.three},{l:'中投',v:p.stats.mid},{l:'突破',v:p.stats.drive},{l:'防守',v:p.stats.def},{l:'篮板',v:p.stats.reb},{l:'体力',v:p.stats.stam,mx:125},{l:'速度',v:p.stats.spd},{l:'模型',v:p.stats.model,nm:1}].map(s=>`<div class="st"><span class="st-l">${s.l}</span><span class="st-v ${s.nm?'':sc(s.v,s.mx||100)}">${s.v}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="ds"><h4>🎯 关键倾向</h4><div class="tg2">
+      ${ts.map(t=>{const v=p.tend[t.k];const c=tc(v,t.r);return`<div class="ti" title="${t.d}"><span class="tn">${t.l}</span><div class="tb"><div class="tbf" style="width:${v}%;background:${c}"></div></div><span class="tv" style="color:${c}">${v}</span></div>`}).join('')}
+    </div></div>
+    <div class="ds"><h4>🎖️ 战术 & 徽章</h4>
+      <div style="margin-bottom:6px"><span style="font-size:11px;color:var(--t3)">战术：</span>${p.tactics.map(t=>`<span class="tg" style="margin-left:3px">${t}</span>`).join('')}</div>
+      <div>${p.badges.map(b=>`<span class="bdg ${b.startsWith('HOF')?'bdg-h':b.startsWith('金')?'bdg-g':'bdg-s'}">${b}</span>`).join('')}</div>
+    </div>
+    <div class="ds"><h4>🏷️ 标签</h4><div class="tgs">${p.tags.map(t=>`<span class="tg">${t}</span>`).join('')}</div></div>`;
+  document.getElementById('modal').classList.add('sh');
+}
+function closeM(){document.getElementById('modal').classList.remove('sh')}
+document.getElementById('modal').onclick=e=>{if(e.target===e.currentTarget)closeM()};
+
+// ===== P2: Lineup =====
+function renderSlots(){
+  const pc=POS_COLORS;
+  function sh(sl,i,g){
+    const p=sl.p;const mp=sl.pos.split('/')[0];const hl=S.slot&&S.slot.g===g&&S.slot.i===i;
+    if(p)return`<div class="slot on ${hl?'hl':''}" onclick="selSlot('${g}',${i})">
+      <div class="slot-p" style="background:${pc[mp]}">${sl.pos}</div>
+      <div class="slot-i"><div class="slot-n">${p.name} <span style="font-size:10px;color:var(--t3)">${p.version}</span></div>
+      <div class="slot-r">${sl.role} | 体力${p.stats.stam} | 触球${p.tend.touch}</div></div>
+      <button class="slot-x" onclick="event.stopPropagation();rmSlot('${g}',${i})">✕</button></div>`;
+    return`<div class="slot ${hl?'hl':''}" onclick="selSlot('${g}',${i})">
+      <div class="slot-p" style="background:${pc[mp]}">${sl.pos}</div>
+      <div class="slot-i"><div class="slot-ph">点击选择 ${sl.role}</div></div></div>`;
+  }
+  document.getElementById('sSlots').innerHTML=S.lineup.s.map((s,i)=>sh(s,i,'s')).join('');
+  document.getElementById('bSlots').innerHTML=S.lineup.b.map((s,i)=>sh(s,i,'b')).join('');
+}
+
+function selSlot(g,i){
+  S.slot={g,i};renderSlots();
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  document.querySelector('[data-t="p1"]').classList.add('on');
+  document.getElementById('p1').classList.add('on');
+}
+
+function addP(id){
+  const p=PLAYERS.find(x=>x.id===id);if(!p)return;
+  const all=[...S.lineup.s,...S.lineup.b];
+  if(all.some(s=>s.p&&s.p.id===id)){alert('该球员已在阵容中');return}
+
+  if(S.slot){
+    const{g,i}=S.slot;S.lineup[g][i].p=p;S.slot=null;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+    document.querySelector('[data-t="p2"]').classList.add('on');
+    document.getElementById('p2').classList.add('on');
+    renderSlots();analyze();return;
+  }
+  // Auto-find
+  for(let i=0;i<S.lineup.s.length;i++){
+    const sl=S.lineup.s[i];
+    if(!sl.p&&p.positions.some(pp=>sl.pos.includes(pp))){sl.p=p;renderSlots();analyze();return}
+  }
+  for(let i=0;i<S.lineup.b.length;i++){
+    const sl=S.lineup.b[i];
+    if(!sl.p&&p.positions.some(pp=>sl.pos.split('/').some(sp=>pp.includes(sp)||sp.includes(pp)))){sl.p=p;renderSlots();analyze();return}
+  }
+  alert('没有合适空位，请先点击槽位再选球员');
+}
+
+function rmSlot(g,i){S.lineup[g][i].p=null;renderSlots();analyze()}
+function clearAll(){S.lineup.s.forEach(s=>s.p=null);S.lineup.b.forEach(s=>s.p=null);renderSlots();analyze()}
+
+function analyze(){
+  const pan=document.getElementById('aPanel');
+  const st=S.lineup.s.map(s=>s.p).filter(Boolean);
+  const bn=S.lineup.b.map(s=>s.p).filter(Boolean);
+  const r=Engine.analyze(st,bn);
+
+  if(!r){pan.innerHTML='<div class="empty"><div class="eic">📋</div><p>至少添加3名球员开始分析</p></div>';return}
+
+  const circ=Math.PI*2*34;
+  const off=circ*(1-r.overall/100);
+  const clr=r.overall>=80?'var(--ok)':r.overall>=60?'var(--wa)':'var(--no)';
+
+  const dims=[
+    {l:'进攻',s:r.offense.score,c:'#f59e0b',d:r.offense.detail},
+    {l:'防守',s:r.defense.score,c:'#3b82f6',d:r.defense.detail},
+    {l:'体力',s:r.stamina.score,c:'#10b981',d:r.stamina.detail},
+    {l:'战术',s:r.tactical.score,c:'#8b5cf6',d:r.tactical.detail},
+  ];
+
+  let html=`<div class="ac"><h3>📊 综合评分</h3><div class="ov-g">
+    <div class="ring"><svg viewBox="0 0 80 80"><circle class="bg" cx="40" cy="40" r="34"/><circle class="fg" cx="40" cy="40" r="34" stroke="${clr}" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="txt" style="color:${clr}">${r.overall}</div></div>
+    <div class="dim">${dims.map(d=>`<div class="dr"><span class="dl">${d.l}</span><div class="db"><div class="dbf" style="width:${d.s}%;background:${d.c}"></div></div><span class="dv" style="color:${d.c}">${d.s}</span></div>`).join('')}</div>
+  </div></div>`;
+
+  // Warnings
+  html+=`<div class="ac"><h3>🔍 阵容诊断</h3>`;
+  r.warnings.forEach(w=>{
+    const cls=w.type==='error'?'er':w.type==='warn'?'wa':w.type==='good'?'gd':'if';
+    html+=`<div class="wi ${cls}">${w.msg}</div>`;
+  });
+  html+=`</div>`;
+
+  // Chemistry
+  if(r.chemistry.length){
+    html+=`<div class="ac"><h3>🧪 阵容化学反应</h3>`;
+    r.chemistry.forEach(c=>{
+      const cls=c.type==='good'?'gd':c.type==='warn'?'wa':'if';
+      html+=`<div class="wi ${cls}">${c.msg}</div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Attacker
+  if(r.attacker){
+    const a=r.attacker;
+    html+=`<div class="ac"><h3>⚔️ 第四节攻坚手</h3>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px">
+        <div style="font-size:28px;font-weight:800;color:var(--acc)">${a.touch}</div>
+        <div><div style="font-size:14px;font-weight:600">${a.player.name} <span style="font-size:11px;color:var(--t3)">${a.player.version}</span></div>
+        <div style="font-size:11px;color:var(--t2)">${a.note} | 战术类型：${a.tactics.join('、')}</div></div>
+      </div></div>`;
+  }
+
+  // Dimension details
+  html+=`<div class="ac"><h3>📈 维度详情</h3>`;
+  dims.forEach(d=>{
+    html+=`<div style="font-size:11px;color:var(--t3);margin-bottom:8px"><span style="color:${d.c};font-weight:600">${d.l} ${d.s}分</span> — ${d.d}</div>`;
+  });
+  html+=`</div>`;
+
+  pan.innerHTML=html;
+}
+
+renderSlots();
+
+// ===== P3: Tier =====
+function renderTier(){
+  const roles=['全部','发牌员','射手','攻坚手','副攻手','内线'];
+  document.getElementById('rTabs').innerHTML=roles.map(r=>`<button class="rtb ${S.tierRole===r?'on':''}" onclick="S.tierRole='${r}';renderTier()">${r}</button>`).join('');
+
+  let ps=S.tierRole==='全部'?PLAYERS:PLAYERS.filter(p=>p.roles.some(r=>r.includes(S.tierRole)));
+  const tiers=[
+    {t:'S+',d:'版本最强，核心首选',c:TIER_COLORS['S+']},
+    {t:'S',d:'顶级强度，主力标配',c:TIER_COLORS.S},
+    {t:'A',d:'优秀选择，可用可上',c:TIER_COLORS.A},
+    {t:'B',d:'平民之友，预算选择',c:TIER_COLORS.B},
+  ];
+
+  document.getElementById('tCont').innerHTML=tiers.map(t=>{
+    const tp=ps.filter(p=>p.tier===t.t);
+    return`<div class="ts"><div class="ts-h"><div class="ts-b" style="background:${t.c}">${t.t}</div><div class="ts-d">${t.d}</div></div>
+      <div class="ts-p">${tp.length?tp.map(p=>`<div class="chip" onclick="showD('${p.id}')"><span class="chip-p" style="background:${POS_COLORS[p.positions[0]]}">${p.positions[0]}</span>${p.name}<span style="font-size:9px;color:var(--t3)">${p.version}</span></div>`).join(''):'<span style="font-size:11px;color:var(--t3)">暂无</span>'}</div></div>`;
+  }).join('');
+}
+
+// ===== P4: Guide =====
+function renderGuide(){
+  document.getElementById('gGrid').innerHTML=`
+  <div class="gc"><h3>🏗️ 八人轮换阵容框架</h3>
+    <p>经理模式标准阵容由<span class="hl">八人轮换</span>组成：</p>
+    <div style="margin:10px 0">
+      ${[
+        {r:'发牌员 ×2',d:'打PG，为射手创造三分+防守',c:'var(--pos-pg)'},
+        {r:'射手 ×2',d:'打SG/SF，三分战术主要进攻手段',c:'var(--pos-sg)'},
+        {r:'副攻手/工具人 ×1',d:'打SG/SF，主要任务防守',c:'var(--pos-sf)'},
+        {r:'内线 ×3',d:'打PF/C，无球掩护+篮板',c:'var(--pos-pf)'},
+      ].map(x=>`<div class="kv"><span class="kv-k" style="color:${x.c}">${x.r}</span><span class="kv-v" style="font-weight:400;font-size:11px">${x.d}</span></div>`).join('')}
+    </div>
+    <p>需<span class="hl">4人体力≥119</span>（2外线+2内线）支撑1/2/4节和1/3/4节的轮换。</p>
+  </div>
+
+  <div class="gc"><h3>⚔️ 第四节攻坚机制</h3>
+    <ul>
+      <li>末节比分接近时进入<span class="hl">攻坚时段</span></li>
+      <li>第四节阵容中<span class="hl">触球倾向最高</span>的球员成为攻坚手</li>
+      <li>攻坚手按其战术类型触发攻坚战术</li>
+      <li>库里等99触球球员可搭配<span class="hl">不挡拆内线</span>（贾巴尔/米查尔·汤普森）将攻坚概率提升至100%</li>
+      <li>当有多个99触球球员时，通过位置排列控制攻坚归属</li>
+    </ul>
+  </div>
+
+  <div class="gc"><h3>🎯 球员倾向解读</h3>
+    ${[
+      {k:'触球倾向',v:'仅决定末节攻坚手人选，不决定常规主射'},
+      {k:'挡拆后三分',v:'影响借掩护三分出手意愿，射手核心指标'},
+      {k:'防守下三分跳投',v:'顶投意愿，越高越敢在有干扰时出手'},
+      {k:'纪律/切入/单挑',v:'共同决定战术执行力，需综合看'},
+      {k:'变向切入',v:'影响运球习惯，高=容易运丢球'},
+      {k:'持球抢断',v:'建议≥60才有合格抢断表现'},
+      {k:'出手 vs 传球',v:'出手>传球=倾向强投；传球≥出手=传空位'},
+    ].map(x=>`<div class="kv"><span class="kv-k">${x.k}</span><span class="kv-v" style="font-weight:400;font-size:11px">${x.v}</span></div>`).join('')}
+  </div>
+
+  <div class="gc"><h3>🛡️ 防守策略要点</h3>
+    <ul>
+      <li><b>施压持球者：</b>后撤限突破、紧逼限投射、中等较万金油</li>
+      <li><b>施压方向：</b>推荐<span class="hl">封底线逼中路</span>（中部选项），底线更危险</li>
+      <li><b>挡拆防守：</b>绕后限突破给投射空间、上线限投射易被突禁区</li>
+      <li><b>换防：</b>注意大小差距，模型差异大时谨慎使用</li>
+      <li><b>收缩：</b>保禁区但外线三分容易丢</li>
+      <li>防守策略在经理和王朝模式<span class="hl">共用</span></li>
+    </ul>
+  </div>
+
+  <div class="gc"><h3>🦅 老鹰战术体系</h3>
+    <p>老鹰队战术板是经理模式最主流的战术选择之一：</p>
+    <ul>
+      <li>需要发牌员适配老鹰体系（如哈珀、李凯尔）</li>
+      <li>核心是<span class="hl">手递手+挡拆三分</span>的战术套组</li>
+      <li>射手的挡拆后三分倾向越高越好（≥80）</li>
+      <li>配合高纪律发牌员效果最佳</li>
+    </ul>
+  </div>
+
+  <div class="gc"><h3>💡 组队建议</h3>
+    <ul>
+      <li><b>顶配思路：</b>库里(14版)+乔丹+贾巴尔+邓肯+哈珀，攻坚流</li>
+      <li><b>高配思路：</b>克莱+麦迪+皮蓬+加内特+罗宾逊+李凯尔</li>
+      <li><b>平民思路：</b>沙梅特/蒙克+卡鲁索+瓦里克+阿德巴约+怀特赛德</li>
+      <li>优先补齐<span class="hl">发牌员</span>和<span class="hl">射手</span>，内线性价比更高</li>
+      <li>不要忽略<span class="hl">体力门槛</span>，体力不足会导致轮换崩盘</li>
+    </ul>
+  </div>`;
+}
+</script>
+</body>
+</html>
