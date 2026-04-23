@@ -9,9 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-<!-- marked.js - Markdown 解析 -->
+<!-- marked.js -->
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
-<!-- highlight.js - 代码高亮 -->
+<!-- highlight.js -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
@@ -44,6 +44,7 @@
   --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;
   --sidebar-w:280px;
   --header-h:54px;
+  --tab-h:36px;
 }
 
 html,body{height:100%;overflow:hidden}
@@ -62,10 +63,10 @@ body{
 .header-brand{
   display:flex;align-items:center;gap:8px;
   font-weight:600;font-size:.95rem;color:var(--text);
-  text-decoration:none;letter-spacing:1px;
+  text-decoration:none;letter-spacing:1px;flex-shrink:0;
 }
 .header-brand svg{width:22px;height:22px;fill:var(--accent)}
-.header-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+.header-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
 
 .btn{
   display:inline-flex;align-items:center;gap:6px;
@@ -79,11 +80,52 @@ body{
 .btn-accent:hover{background:rgba(88,166,255,.25)}
 .btn svg{width:15px;height:15px;fill:currentColor;flex-shrink:0}
 
-.file-name{
-  font-size:.82rem;color:var(--text-dim);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  max-width:300px;
+/* ========== Tab Bar ========== */
+.tab-bar{
+  height:var(--tab-h);background:var(--bg);
+  border-bottom:1px solid var(--border);
+  display:none;align-items:stretch;
+  overflow-x:auto;overflow-y:hidden;flex-shrink:0;
+  scrollbar-width:none;
 }
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-bar.visible{display:flex}
+
+.tab{
+  display:flex;align-items:center;gap:6px;
+  padding:0 14px;font-size:.78rem;color:var(--text-dim);
+  cursor:pointer;border-right:1px solid var(--border);
+  background:var(--bg);white-space:nowrap;position:relative;
+  transition:background .15s,color .15s;flex-shrink:0;
+  max-width:200px;min-width:0;
+}
+.tab:hover{background:var(--surface2);color:var(--text)}
+.tab.active{
+  background:var(--surface);color:var(--text);
+  box-shadow:inset 0 -2px 0 var(--accent);
+}
+.tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab-close{
+  display:flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:4px;flex-shrink:0;
+  opacity:0;transition:opacity .15s,background .15s;
+}
+.tab:hover .tab-close,.tab.active .tab-close{opacity:1}
+.tab-close:hover{background:rgba(255,255,255,.1)}
+.tab-close svg{width:12px;height:12px;fill:currentColor}
+.tab-dot{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--accent);opacity:.6;
+}
+
+/* Add tab button */
+.tab-add{
+  display:flex;align-items:center;justify-content:center;
+  width:var(--tab-h);flex-shrink:0;cursor:pointer;
+  color:var(--text-muted);transition:all .15s;
+}
+.tab-add:hover{color:var(--text);background:var(--surface2)}
+.tab-add svg{width:16px;height:16px;fill:currentColor}
 
 /* ========== Layout ========== */
 .main{display:flex;flex:1;overflow:hidden;position:relative}
@@ -124,9 +166,16 @@ body{
 }
 
 /* ========== Content ========== */
-.content-wrap{flex:1;overflow-y:auto;position:relative}
-.content-wrap::-webkit-scrollbar{width:6px}
-.content-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.content-wrap{flex:1;overflow:hidden;position:relative}
+
+/* Each tab's panel */
+.tab-panel{
+  position:absolute;inset:0;overflow-y:auto;
+  display:none;
+}
+.tab-panel.active{display:block}
+.tab-panel::-webkit-scrollbar{width:6px}
+.tab-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
 /* ========== Drop Zone ========== */
 .drop-zone{
@@ -221,7 +270,7 @@ body.dragging .drop-zone-icon svg{fill:var(--accent)}
   font-size:.85em;line-height:1.65;
 }
 
-/* Code block header (language + copy) */
+/* Code block header */
 .code-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:6px 14px;background:var(--surface2);
@@ -244,7 +293,7 @@ body.dragging .drop-zone-icon svg{fill:var(--accent)}
 
 /* ========== Search Bar ========== */
 .search-bar{
-  position:fixed;top:70px;right:20px;z-index:200;
+  position:fixed;top:calc(var(--header-h) + var(--tab-h) + 16px);right:20px;z-index:200;
   display:none;align-items:center;gap:8px;
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius-lg);padding:6px 12px;
@@ -271,6 +320,10 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
 /* ========== Progress Bar ========== */
 .progress-bar{
   position:fixed;top:var(--header-h);left:0;right:0;height:2px;z-index:99;
+}
+.tab-bar.visible ~ .main .progress-bar,
+body:has(.tab-bar.visible) .progress-bar{
+  top:calc(var(--header-h) + var(--tab-h));
 }
 .progress-bar-inner{
   height:100%;width:0;background:var(--accent);
@@ -309,14 +362,15 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
   }
   .sidebar.collapsed{margin-left:calc(var(--sidebar-w) * -1)}
   .md-body{padding:24px 20px 60px}
-  .file-name{max-width:140px}
   .search-bar input{width:160px}
+  .tab{max-width:140px;padding:0 10px}
 }
 
 /* Print style */
 @media print{
-  .header,.sidebar,.scroll-top,.word-count,.progress-bar,.search-bar{display:none!important}
+  .header,.sidebar,.scroll-top,.word-count,.progress-bar,.search-bar,.tab-bar{display:none!important}
   .content-wrap{overflow:visible!important}
+  .tab-panel{position:static!important;display:block!important;overflow:visible!important}
   .md-body{max-width:none;padding:0;color:#000}
   .md-body pre code{white-space:pre-wrap}
 }
@@ -330,7 +384,6 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/><path d="M8 12h8v1.5H8zm0 3h6v1.5H8z" opacity=".7"/></svg>
     MD Viewer
   </a>
-  <span class="file-name" id="fileName">未打开文件</span>
 
   <div class="header-actions">
     <button class="btn" id="btnToc" title="目录 (Ctrl+B)">
@@ -343,8 +396,15 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
     <label class="btn btn-accent" id="btnOpen" title="打开文件 (Ctrl+O)">
       <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
       打开
-      <input type="file" id="fileInput" accept=".md,.markdown,.mdown,.mkd,.mkdn,.mdwn,.mdtxt,.txt" style="display:none">
+      <input type="file" id="fileInput" accept=".md,.markdown,.mdown,.mkd,.mkdn,.mdwn,.mdtxt,.txt" multiple style="display:none">
     </label>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar" id="tabBar">
+  <div class="tab-add" id="tabAdd" title="打开新文件 (Ctrl+O)">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
   </div>
 </div>
 
@@ -354,7 +414,7 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
 <!-- Search Bar -->
 <div class="search-bar" id="searchBar">
   <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--text-muted);flex-shrink:0"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-  <input type="text" id="searchInput" placeholder="搜索内容...">
+  <input type="text" id="searchInput" placeholder="搜索当前文档...">
   <span class="search-info" id="searchInfo"></span>
   <div class="search-nav">
     <button id="searchPrev" title="上一个 (Shift+Enter)">
@@ -377,20 +437,23 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
     <nav class="toc" id="toc"></nav>
   </div>
 
-  <!-- Content -->
+  <!-- Content (panels will be created dynamically) -->
   <div class="content-wrap" id="contentWrap">
-    <div class="drop-zone" id="dropZone">
-      <div class="drop-zone-icon">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2.5L18.5 10H13V4.5zM6 20V4h5v7h7v9H6z"/></svg>
+    <!-- Welcome panel (no tab) -->
+    <div class="tab-panel active" id="welcomePanel">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2.5L18.5 10H13V4.5zM6 20V4h5v7h7v9H6z"/></svg>
+        </div>
+        <h2>打开 Markdown 文件</h2>
+        <p>
+          拖放 <kbd>.md</kbd> 文件到此处（支持多文件）<br>
+          或点击右上角 <strong>打开</strong> 按钮选择文件<br>
+          也可以直接 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴 Markdown 文本<br><br>
+          <span style="color:var(--accent)">✨ 支持多标签页同时查看</span>
+        </p>
       </div>
-      <h2>打开 Markdown 文件</h2>
-      <p>
-        拖放 <kbd>.md</kbd> 文件到此处<br>
-        或点击右上角 <strong>打开</strong> 按钮选择文件<br>
-        也可以直接 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴 Markdown 文本
-      </p>
     </div>
-    <article class="md-body" id="mdBody" style="display:none"></article>
   </div>
 </div>
 
@@ -406,44 +469,37 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
 (function(){
   // ====== Elements ======
   const $ = id => document.getElementById(id);
-  const sidebar    = $('sidebar');
-  const toc        = $('toc');
-  const contentWrap= $('contentWrap');
-  const dropZone   = $('dropZone');
-  const mdBody     = $('mdBody');
-  const fileInput  = $('fileInput');
-  const fileName   = $('fileName');
-  const btnToc     = $('btnToc');
-  const btnSearch  = $('btnSearch');
-  const btnOpen    = $('btnOpen');
-  const searchBar  = $('searchBar');
-  const searchInput= $('searchInput');
-  const searchInfo = $('searchInfo');
-  const progressBar= $('progressBar');
+  const sidebar     = $('sidebar');
+  const toc         = $('toc');
+  const contentWrap = $('contentWrap');
+  const welcomePanel= $('welcomePanel');
+  const fileInput   = $('fileInput');
+  const btnToc      = $('btnToc');
+  const btnSearch   = $('btnSearch');
+  const tabBar      = $('tabBar');
+  const tabAdd      = $('tabAdd');
+  const searchBar   = $('searchBar');
+  const searchInput = $('searchInput');
+  const searchInfo  = $('searchInfo');
+  const progressBar = $('progressBar');
   const scrollTopBtn= $('scrollTop');
-  const wordCountEl= $('wordCount');
+  const wordCountEl = $('wordCount');
 
-  let rawMarkdown = '';
+  // ====== Tab State ======
+  let tabs = [];       // [{id, name, markdown, html, scrollTop}]
+  let activeTabId = null;
+  let tabCounter = 0;
   let searchMatches = [];
   let searchIndex = -1;
 
-  // ====== Marked config ======
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-    highlight: function(code, lang){
-      if(lang && hljs.getLanguage(lang)){
-        try{ return hljs.highlight(code,{language:lang}).value; }catch(e){}
-      }
-      try{ return hljs.highlightAuto(code).value; }catch(e){}
-      return code;
-    }
-  });
+  // Tab colors for the dots
+  const tabColors = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#f778ba','#79c0ff','#56d4dd'];
 
-  // Custom renderer for code blocks (add header + copy button)
+  // ====== Marked config ======
+  marked.setOptions({ breaks:true, gfm:true });
+
   const renderer = new marked.Renderer();
   renderer.code = function(obj){
-    // marked v12: obj might be {text, lang, escaped} or just (code, lang)
     let code, lang;
     if(typeof obj === 'object' && obj !== null){
       code = obj.text || obj.raw || '';
@@ -452,7 +508,6 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
       code = obj;
       lang = arguments[1] || '';
     }
-    // Remove trailing newline from fenced code
     code = code.replace(/\n$/, '');
     let highlighted;
     if(lang && hljs.getLanguage(lang)){
@@ -461,89 +516,231 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
       try{ highlighted = hljs.highlightAuto(code).value; }catch(e){ highlighted = escapeHtml(code); }
     }
     const langLabel = lang ? lang.toUpperCase() : 'CODE';
-    return `<pre><div class="code-header"><span>${langLabel}</span><button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制</button></div><code class="hljs language-${lang}">${highlighted}</code></pre>`;
+    return '<pre><div class="code-header"><span>'+langLabel+'</span><button class="copy-btn" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>\u590d\u5236</button></div><code class="hljs language-'+lang+'">'+highlighted+'</code></pre>';
   };
 
-  // Task list checkbox
   renderer.listitem = function(obj){
     let text = typeof obj === 'object' ? (obj.text || '') : obj;
     if(/^\[[ x]\]\s/.test(text)){
       const checked = text.startsWith('[x]');
       text = text.replace(/^\[[ x]\]\s*/, '');
-      return `<li style="list-style:none"><input type="checkbox" disabled ${checked?'checked':''}>${text}</li>\n`;
+      return '<li style="list-style:none"><input type="checkbox" disabled '+(checked?'checked':'')+'>' + text + '</li>\n';
     }
-    return `<li>${text}</li>\n`;
+    return '<li>' + text + '</li>\n';
   };
 
   function escapeHtml(s){
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // Global copy function
   window.copyCode = function(btn){
     const code = btn.closest('pre').querySelector('code');
-    const text = code.textContent;
-    navigator.clipboard.writeText(text).then(()=>{
+    navigator.clipboard.writeText(code.textContent).then(()=>{
       btn.classList.add('copied');
-      btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>已复制';
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>\u5df2\u590d\u5236';
       setTimeout(()=>{
         btn.classList.remove('copied');
-        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>复制';
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>\u590d\u5236';
       }, 2000);
     });
   };
 
-  // ====== Render Markdown ======
-  function renderMd(md, name){
-    rawMarkdown = md;
-    const html = marked.parse(md, {renderer});
-    dropZone.style.display = 'none';
-    mdBody.style.display = 'block';
-    mdBody.innerHTML = html;
-    fileName.textContent = name || '粘贴的文本';
-    document.title = (name || 'Markdown') + ' - MD Viewer';
-    buildToc();
-    updateWordCount(md);
-    contentWrap.scrollTop = 0;
-    // Auto show sidebar if has headings
-    const headings = mdBody.querySelectorAll('h1,h2,h3,h4,h5,h6');
-    if(headings.length > 1){
-      sidebar.classList.remove('collapsed');
+  // ====== Tab Management ======
+  function createTab(name, markdown){
+    const id = 'tab-' + (++tabCounter);
+    const html = marked.parse(markdown, {renderer});
+    const color = tabColors[(tabCounter - 1) % tabColors.length];
+
+    const tabData = {id, name: name || '\u7c98\u8d34\u7684\u6587\u672c', markdown, html, scrollTop:0, color};
+    tabs.push(tabData);
+
+    // Create panel
+    const panel = document.createElement('div');
+    panel.className = 'tab-panel';
+    panel.id = id + '-panel';
+    const body = document.createElement('article');
+    body.className = 'md-body';
+    body.innerHTML = html;
+    panel.appendChild(body);
+    contentWrap.appendChild(panel);
+
+    // Panel scroll listener
+    panel.addEventListener('scroll', ()=>{
+      if(activeTabId !== id) return;
+      tabData.scrollTop = panel.scrollTop;
+      const pct = panel.scrollTop / (panel.scrollHeight - panel.clientHeight) * 100;
+      progressBar.style.width = Math.min(pct||0, 100) + '%';
+      scrollTopBtn.classList.toggle('visible', panel.scrollTop > 300);
+    });
+
+    renderTabBar();
+    switchTab(id);
+    return id;
+  }
+
+  function removeTab(id){
+    const idx = tabs.findIndex(t=>t.id===id);
+    if(idx < 0) return;
+    tabs.splice(idx, 1);
+
+    // Remove panel
+    const panel = $(id + '-panel');
+    if(panel) panel.remove();
+
+    if(tabs.length === 0){
+      activeTabId = null;
+      renderTabBar();
+      showWelcome();
+    } else {
+      // Switch to neighbor
+      const newIdx = Math.min(idx, tabs.length - 1);
+      renderTabBar();
+      switchTab(tabs[newIdx].id);
     }
   }
 
-  // ====== Build TOC ======
-  function buildToc(){
+  function switchTab(id){
+    // Save current scroll
+    if(activeTabId){
+      const cur = tabs.find(t=>t.id===activeTabId);
+      const curPanel = $(activeTabId + '-panel');
+      if(cur && curPanel) cur.scrollTop = curPanel.scrollTop;
+    }
+
+    activeTabId = id;
+    const tab = tabs.find(t=>t.id===id);
+    if(!tab) return;
+
+    // Hide welcome, show panels
+    welcomePanel.classList.remove('active');
+    contentWrap.querySelectorAll('.tab-panel').forEach(p=>{
+      p.classList.toggle('active', p.id === id + '-panel');
+    });
+
+    // Restore scroll
+    const panel = $(id + '-panel');
+    if(panel) panel.scrollTop = tab.scrollTop;
+
+    // Update title
+    document.title = tab.name + ' - MD Viewer';
+
+    // Update tab bar highlights
+    tabBar.querySelectorAll('.tab').forEach(el=>{
+      el.classList.toggle('active', el.dataset.id === id);
+    });
+
+    // Build TOC for this tab
+    buildTocFor(id);
+
+    // Update word count
+    updateWordCount(tab.markdown);
+
+    // Update progress
+    if(panel){
+      const pct = panel.scrollTop / (panel.scrollHeight - panel.clientHeight) * 100;
+      progressBar.style.width = Math.min(pct||0, 100) + '%';
+      scrollTopBtn.classList.toggle('visible', panel.scrollTop > 300);
+    }
+
+    // Auto show sidebar if headings
+    const body = panel?.querySelector('.md-body');
+    if(body){
+      const headings = body.querySelectorAll('h1,h2,h3,h4,h5,h6');
+      if(headings.length > 1) sidebar.classList.remove('collapsed');
+    }
+
+    // Close search when switching
+    closeSearch();
+  }
+
+  function showWelcome(){
+    welcomePanel.classList.add('active');
+    contentWrap.querySelectorAll('.tab-panel:not(#welcomePanel)').forEach(p=>p.classList.remove('active'));
+    document.title = 'MD Viewer - Markdown \u9605\u8bfb\u5668';
     toc.innerHTML = '';
-    const headings = mdBody.querySelectorAll('h1,h2,h3,h4,h5,h6');
+    wordCountEl.classList.remove('visible');
+    progressBar.style.width = '0%';
+    scrollTopBtn.classList.remove('visible');
+  }
+
+  function renderTabBar(){
+    // Remove old tabs (keep tabAdd)
+    tabBar.querySelectorAll('.tab').forEach(el=>el.remove());
+
+    if(tabs.length === 0){
+      tabBar.classList.remove('visible');
+      return;
+    }
+
+    tabBar.classList.add('visible');
+
+    tabs.forEach(t=>{
+      const el = document.createElement('div');
+      el.className = 'tab' + (t.id === activeTabId ? ' active' : '');
+      el.dataset.id = t.id;
+      el.innerHTML =
+        '<span class="tab-dot" style="background:'+t.color+'"></span>' +
+        '<span class="tab-name" title="'+escapeHtml(t.name)+'">'+escapeHtml(t.name)+'</span>' +
+        '<span class="tab-close"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>';
+
+      el.addEventListener('click', e=>{
+        if(e.target.closest('.tab-close')){
+          e.stopPropagation();
+          removeTab(t.id);
+          return;
+        }
+        switchTab(t.id);
+      });
+
+      // Middle click to close
+      el.addEventListener('auxclick', e=>{
+        if(e.button === 1){
+          e.preventDefault();
+          removeTab(t.id);
+        }
+      });
+
+      tabBar.insertBefore(el, tabAdd);
+    });
+  }
+
+  // ====== Build TOC for specific tab ======
+  function buildTocFor(tabId){
+    toc.innerHTML = '';
+    const panel = $(tabId + '-panel');
+    if(!panel) return;
+    const body = panel.querySelector('.md-body');
+    if(!body) return;
+    const headings = body.querySelectorAll('h1,h2,h3,h4,h5,h6');
     if(headings.length === 0){
-      toc.innerHTML = '<div class="toc-empty">此文档没有标题</div>';
+      toc.innerHTML = '<div class="toc-empty">\u6b64\u6587\u6863\u6ca1\u6709\u6807\u9898</div>';
       return;
     }
     headings.forEach((h, i)=>{
-      const id = 'heading-' + i;
-      h.id = id;
+      const hid = tabId + '-h-' + i;
+      h.id = hid;
       const level = parseInt(h.tagName[1]);
       const item = document.createElement('a');
       item.className = 'toc-item';
       item.dataset.level = level;
       item.textContent = h.textContent;
-      item.href = '#' + id;
+      item.href = '#' + hid;
       item.onclick = function(e){
         e.preventDefault();
         h.scrollIntoView({behavior:'smooth',block:'start'});
       };
       toc.appendChild(item);
     });
-    // Observe active heading
-    observeHeadings(headings);
+    observeHeadings(headings, panel);
   }
 
-  function observeHeadings(headings){
+  let headingObserver = null;
+  function observeHeadings(headings, scrollContainer){
+    if(headingObserver) headingObserver.disconnect();
     const tocItems = toc.querySelectorAll('.toc-item');
     if(!tocItems.length) return;
 
-    const observer = new IntersectionObserver(entries=>{
+    headingObserver = new IntersectionObserver(entries=>{
       entries.forEach(entry=>{
         if(entry.isIntersecting){
           tocItems.forEach(t=>t.classList.remove('active'));
@@ -554,34 +751,34 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
           }
         }
       });
-    },{root:contentWrap, rootMargin:'-10% 0px -80% 0px', threshold:0});
-    headings.forEach(h=>observer.observe(h));
+    },{root:scrollContainer, rootMargin:'-10% 0px -80% 0px', threshold:0});
+    headings.forEach(h=>headingObserver.observe(h));
   }
 
   // ====== Word Count ======
   function updateWordCount(md){
-    // Count Chinese chars + English words
     const chinese = (md.match(/[\u4e00-\u9fff]/g)||[]).length;
     const english = (md.match(/[a-zA-Z]+/g)||[]).length;
     const lines = md.split('\n').length;
-    wordCountEl.textContent = `${chinese + english} 字 · ${lines} 行 · 约 ${Math.ceil((chinese+english)/300)} 分钟阅读`;
+    wordCountEl.textContent = (chinese+english)+' \u5b57 \u00b7 '+lines+' \u884c \u00b7 \u7ea6 '+Math.ceil((chinese+english)/300)+' \u5206\u949f\u9605\u8bfb';
     wordCountEl.classList.add('visible');
   }
 
-  // ====== File Input ======
+  // ====== File Input (supports multiple) ======
   fileInput.addEventListener('change', e=>{
-    const f = e.target.files[0];
-    if(!f) return;
-    readFile(f);
+    const files = Array.from(e.target.files);
+    if(!files.length) return;
+    files.forEach(f => readFileToTab(f));
+    fileInput.value = ''; // reset
   });
 
-  function readFile(f){
+  function readFileToTab(f){
     const reader = new FileReader();
-    reader.onload = ()=> renderMd(reader.result, f.name);
+    reader.onload = ()=> createTab(f.name, reader.result);
     reader.readAsText(f);
   }
 
-  // ====== Drag & Drop ======
+  // ====== Drag & Drop (supports multiple) ======
   document.addEventListener('dragover', e=>{
     e.preventDefault();
     document.body.classList.add('dragging');
@@ -593,27 +790,34 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
   document.addEventListener('drop', e=>{
     e.preventDefault();
     document.body.classList.remove('dragging');
-    const f = e.dataTransfer.files[0];
-    if(f) readFile(f);
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(f => readFileToTab(f));
   });
 
   // ====== Paste ======
   document.addEventListener('paste', e=>{
-    // Don't intercept if search input is focused
     if(document.activeElement === searchInput) return;
     const text = e.clipboardData.getData('text/plain');
     if(text && text.trim()){
-      renderMd(text.trim(), null);
+      createTab(null, text.trim());
     }
   });
 
-  // ====== TOC Toggle ======
-  btnToc.addEventListener('click', ()=>{
-    sidebar.classList.toggle('collapsed');
-  });
+  // ====== Tab Add button ======
+  tabAdd.addEventListener('click', ()=> fileInput.click());
 
-  // ====== Search ======
+  // ====== TOC Toggle ======
+  btnToc.addEventListener('click', ()=> sidebar.classList.toggle('collapsed'));
+
+  // ====== Search (scoped to active tab) ======
+  function getActiveBody(){
+    if(!activeTabId) return null;
+    const panel = $(activeTabId + '-panel');
+    return panel?.querySelector('.md-body') || null;
+  }
+
   function openSearch(){
+    if(!activeTabId) return;
     searchBar.classList.add('open');
     searchInput.focus();
     searchInput.select();
@@ -630,9 +834,7 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
   btnSearch.addEventListener('click', openSearch);
   $('searchClose').addEventListener('click', closeSearch);
 
-  searchInput.addEventListener('input', ()=>{
-    doSearch(searchInput.value);
-  });
+  searchInput.addEventListener('input', ()=> doSearch(searchInput.value));
   searchInput.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -648,12 +850,12 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
     clearHighlights();
     searchMatches = [];
     searchIndex = -1;
-    if(!query.trim()){
+    const body = getActiveBody();
+    if(!body || !query.trim()){
       searchInfo.textContent = '';
       return;
     }
-    // Walk text nodes
-    const walker = document.createTreeWalker(mdBody, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
     const textNodes = [];
     while(walker.nextNode()) textNodes.push(walker.currentNode);
 
@@ -665,13 +867,13 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
       const parts = [];
       let lastEnd = 0;
       while((idx = lt.indexOf(lq, idx)) !== -1){
-        if(idx > lastEnd) parts.push({text: text.slice(lastEnd, idx), match:false});
-        parts.push({text: text.slice(idx, idx+query.length), match:true});
+        if(idx > lastEnd) parts.push({text:text.slice(lastEnd,idx),match:false});
+        parts.push({text:text.slice(idx,idx+query.length),match:true});
         lastEnd = idx + query.length;
         idx += query.length;
       }
       if(parts.length && lastEnd < text.length){
-        parts.push({text: text.slice(lastEnd), match:false});
+        parts.push({text:text.slice(lastEnd),match:false});
       }
       if(parts.length){
         const frag = document.createDocumentFragment();
@@ -689,7 +891,7 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
         node.parentNode.replaceChild(frag, node);
       }
     });
-    searchInfo.textContent = searchMatches.length ? `${searchMatches.length} 个结果` : '无结果';
+    searchInfo.textContent = searchMatches.length ? searchMatches.length+' \u4e2a\u7ed3\u679c' : '\u65e0\u7ed3\u679c';
     if(searchMatches.length){
       searchIndex = 0;
       highlightCurrent();
@@ -708,53 +910,58 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
     if(!m) return;
     m.classList.add('current');
     m.scrollIntoView({behavior:'smooth',block:'center'});
-    searchInfo.textContent = `${searchIndex+1} / ${searchMatches.length}`;
+    searchInfo.textContent = (searchIndex+1)+' / '+searchMatches.length;
   }
 
   function clearHighlights(){
-    mdBody.querySelectorAll('mark.search-highlight').forEach(mark=>{
+    const body = getActiveBody();
+    if(!body) return;
+    body.querySelectorAll('mark.search-highlight').forEach(mark=>{
       const parent = mark.parentNode;
       parent.replaceChild(document.createTextNode(mark.textContent), mark);
       parent.normalize();
     });
   }
 
-  // ====== Scroll progress + scroll to top ======
-  contentWrap.addEventListener('scroll', ()=>{
-    const el = contentWrap;
-    const pct = el.scrollTop / (el.scrollHeight - el.clientHeight) * 100;
-    progressBar.style.width = Math.min(pct, 100) + '%';
-    scrollTopBtn.classList.toggle('visible', el.scrollTop > 300);
-  });
+  // ====== Scroll to top ======
   scrollTopBtn.addEventListener('click', ()=>{
-    contentWrap.scrollTo({top:0,behavior:'smooth'});
+    if(!activeTabId) return;
+    const panel = $(activeTabId + '-panel');
+    if(panel) panel.scrollTo({top:0,behavior:'smooth'});
   });
 
   // ====== Keyboard shortcuts ======
   document.addEventListener('keydown', e=>{
     const mod = e.ctrlKey || e.metaKey;
-    // Ctrl+O - open file
     if(mod && e.key === 'o'){
       e.preventDefault();
       fileInput.click();
     }
-    // Ctrl+F - search
     if(mod && e.key === 'f'){
       e.preventDefault();
-      if(mdBody.style.display !== 'none') openSearch();
+      if(activeTabId) openSearch();
     }
-    // Ctrl+B - toggle toc
     if(mod && e.key === 'b'){
       e.preventDefault();
       sidebar.classList.toggle('collapsed');
     }
-    // Escape
-    if(e.key === 'Escape'){
-      closeSearch();
+    if(mod && e.key === 'w'){
+      e.preventDefault();
+      if(activeTabId) removeTab(activeTabId);
     }
+    // Ctrl+Tab / Ctrl+Shift+Tab to switch tabs
+    if(mod && e.key === 'Tab'){
+      e.preventDefault();
+      if(tabs.length < 2) return;
+      const idx = tabs.findIndex(t=>t.id===activeTabId);
+      const dir = e.shiftKey ? -1 : 1;
+      const next = (idx + dir + tabs.length) % tabs.length;
+      switchTab(tabs[next].id);
+    }
+    if(e.key === 'Escape') closeSearch();
   });
 
-  // ====== URL params: load from ?url= ======
+  // ====== URL params ======
   const params = new URLSearchParams(location.search);
   const mdUrl = params.get('url');
   if(mdUrl){
@@ -762,12 +969,10 @@ mark.search-highlight.current{background:rgba(230,180,34,.7)}
       .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
       .then(text=>{
         const name = mdUrl.split('/').pop() || 'remote.md';
-        renderMd(text, name);
+        createTab(name, text);
       })
       .catch(err=>{
-        mdBody.style.display = 'block';
-        dropZone.style.display = 'none';
-        mdBody.innerHTML = `<div style="text-align:center;padding:60px;color:var(--red)"><h3>加载失败</h3><p>${escapeHtml(mdUrl)}</p><p style="color:var(--text-muted);margin-top:8px">${err.message}</p></div>`;
+        createTab('Error', '# \u52a0\u8f7d\u5931\u8d25\n\n**URL:** `'+mdUrl+'`\n\n**\u9519\u8bef:** '+err.message);
       });
   }
 
